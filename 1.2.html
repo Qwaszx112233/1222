@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>❤️ Love Number Puzzle — для коханої ❤️</title>
+
+  <style>
+    :root {
+      --primary-color: #e91e63;
+      --secondary-color: #ff4081;
+      --accent-color: #f8bbd9;
+      --bg-color: #fff5f7;
+      --text-color: #880e4f;
+      --white: #ffffff;
+      --shadow: 0 4px 15px rgba(233, 30, 99, 0.18);
+      --cell-color: #ffeef2;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #fff5f7 0%, #ffeef2 100%);
+      min-height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      touch-action: manipulation;
+      color: var(--text-color);
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+    }
+
+    .floating-hearts {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -1;
+    }
+    .floating-heart {
+      position: absolute;
+      font-size: 1rem;
+      opacity: 0.12;
+      animation: floatAround 14s linear infinite;
+    }
+    @keyframes floatAround {
+      0%   { transform: translate(0,0) rotate(0deg);   }
+      25%  { transform: translate(60px,80px) rotate(90deg); }
+      50%  { transform: translate(30px,150px) rotate(180deg);}
+      75%  { transform: translate(-50px,120px) rotate(270deg);}
+      100% { transform: translate(0,0) rotate(360deg); }
+    }
+
+    .main-menu {
+      text-align: center;
+    }
+    .game-title {
+      font-size: clamp(2rem, 8vw, 2.8rem);
+      font-weight: 900;
+      color: var(--primary-color);
+      margin-bottom: 18px;
+      text-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      animation: heartbeat 2.4s ease-in-out infinite;
+    }
+    @keyframes heartbeat {
+      0%,100% { transform: scale(1); }
+      15%     { transform: scale(1.07); }
+      30%     { transform: scale(0.98); }
+      45%     { transform: scale(1.05); }
+      60%     { transform: scale(1); }
+    }
+    .subtitle {
+      max-width: 320px;
+      font-size: 0.95rem;
+      margin-bottom: 22px;
+      line-height: 1.4;
+    }
+    .menu-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 280px;
+    }
+    .menu-btn {
+      padding: 14px 18px;
+      border-radius: 16px;
+      border: none;
+      background: linear-gradient(45deg,var(--primary-color),var(--secondary-color));
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .menu-btn.secondary {
+      background:#fff;
+      color:var(--primary-color);
+      border:2px solid var(--accent-color);
+    }
+    .menu-btn:active {
+      transform: scale(0.96);
+      box-shadow:0 2px 8px rgba(0,0,0,0.18);
+    }
+    .menu-features {
+      margin-top:20px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      max-width:280px;
+    }
+    .feature-item {
+      padding:10px 6px;
+      border-radius:12px;
+      background:#fff;
+      font-size:0.8rem;
+      font-weight:700;
+      box-shadow:var(--shadow);
+    }
+
+    .game-screen {
+      justify-content:flex-start;
+      padding:8px 10px 10px;
+    }
+    .game-header-row {
+      width:100%;
+      display:flex;
+      align-items:center;
+      gap:6px;
+      margin-bottom:6px;
+    }
+    .home-btn,
+    .save-btn {
+      padding:7px 10px;
+      border-radius:10px;
+      border:2px solid var(--accent-color);
+      background:#fff;
+      font-size:1.05rem;
+      cursor:pointer;
+      box-shadow:var(--shadow);
+    }
+    .header-text {
+      flex:1;
+      text-align:center;
+      font-weight:700;
+      font-size:0.9rem;
+    }
+
+    .goal-box {
+      width:100%;
+      margin-top:2px;
+      padding:6px 8px;
+      border-radius:10px;
+      background:#fff;
+      border:2px solid var(--accent-color);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:0.85rem;
+      font-weight:700;
+      box-shadow:var(--shadow);
+    }
+
+    .xp-wrap {
+      width:100%;
+      margin:8px 0 4px;
+    }
+    .xp-label {
+      font-size:0.7rem;
+      margin-bottom:2px;
+      text-align:center;
+      font-weight:600;
+    }
+    .xp-bar {
+      position:relative;
+      height:12px;
+      border-radius:8px;
+      border:2px solid var(--accent-color);
+      background:#ffeef2;
+      overflow:hidden;
+    }
+    .xp-inner {
+      height:100%;
+      width:0%;
+      background:linear-gradient(45deg,var(--primary-color),var(--secondary-color));
+      transition:width 0.35s ease;
+    }
+    .xp-text {
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:0.65rem;
+      font-weight:700;
+      color:var(--text-color);
+    }
+
+    .bonuses {
+      display:flex;
+      justify-content:center;
+      gap:6px;
+      flex-wrap:wrap;
+      margin-bottom:4px;
+    }
+    .bonus-btn {
+      min-width:78px;
+      padding:6px 8px;
+      border-radius:10px;
+      border:2px solid var(--accent-color);
+      background:var(--cell-color);
+      font-size:0.75rem;
+      font-weight:700;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:3px;
+      transition:transform 0.12s.ease, background 0.12s ease, color 0.12s ease;
+      box-shadow:var(--shadow);
+    }
+    .bonus-btn:active:not(:disabled) {
+      transform:scale(0.95);
+    }
+    .bonus-btn.disabled,
+    .bonus-btn:disabled {
+      opacity:0.4;
+      cursor:not-allowed;
+      box-shadow:none;
+    }
+    .bonus-btn.active {
+      background:var(--primary-color);
+      color:#fff;
+    }
+    .bonus-count {
+      font-size:0.65rem;
+      font-weight:800;
+      color:var(--primary-color);
+    }
+
+    .game-content {
+      flex:1;
+      width:100%;
+      display:flex;
+      flex-direction:column;
+      margin-top:4px;
+      min-height:0;
+    }
+    .grid-container {
+      flex:1;
+      min-height:0;
+      width:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+    }
+    .grid {
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      grid-template-rows:repeat(8,1fr);
+      gap:2px;
+      width:100%;
+      max-width:420px;
+      height:100%;
+      max-height:100%;
+      padding:6px;
+      border-radius:14px;
+      background:#fff;
+      box-shadow:var(--shadow);
+      touch-action:none;
+      user-select:none;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .cell {
+      position:relative;
+      border-radius:9px;
+      background:var(--cell-color);
+      box-shadow:0 1px 3px rgba(233,30,99,0.2);
+      overflow:hidden;
+      border:1px solid transparent;
+      cursor:pointer;
+      transition:transform 0.12s ease, box-shadow 0.12s.ease, border-color 0.12s.ease, opacity 0.12s ease;
+    }
+    .cell::before {
+      content:"";
+      display:block;
+      padding-top:100%;
+    }
+    .cell-inner {
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:clamp(0.8rem,2.4vw,1rem);
+      font-weight:800;
+      color:var(--text-color);
+      pointer-events:none;
+      transition:transform 0.12s ease, background 0.12s ease, color 0.12s ease;
+    }
+    .cell.selected {
+      transform:scale(0.96);
+      border-color:var(--secondary-color);
+      box-shadow:0 0 0 2px rgba(255,64,129,0.45);
+    }
+    .cell.selected .cell-inner {
+      background:var(--secondary-color);
+      color:#fff;
+      border-radius:7px;
+    }
+    .cell.merged .cell-inner {
+      animation:pop 0.22s ease;
+    }
+    .cell.popping {
+      animation:bubbleOut 0.25s ease forwards;
+    }
+    .cell.carry .cell-inner {
+      animation:carryIn 0.45s ease-out;
+    }
+
+    @keyframes pop {
+      0% { transform:scale(1.2); opacity:0.7; }
+      100%{ transform:scale(1);   opacity:1;   }
+    }
+    @keyframes bubbleOut {
+      0% { transform:scale(1); opacity:1; }
+      100%{ transform:scale(0); opacity:0;}
+    }
+    @keyframes carryIn {
+      0% { transform:scale(0.3); opacity:0; }
+      60%{ transform:scale(1.1); opacity:1; }
+      100%{transform:scale(1);   opacity:1; }
+    }
+
+    .cell[data-number="2"]    { background:#ffdee7; }
+    .cell[data-number="4"]    { background:#ffe6aa; }
+    .cell[data-number="8"]    { background:#d8ffd2; }
+    .cell[data-number="16"]   { background:#d5f1ff; }
+    .cell[data-number="32"]   { background:#f0d5ff; }
+    .cell[data-number="64"]   { background:#ffd6bf; }
+    .cell[data-number="128"]  { background:#f6f0b8; }
+    .cell[data-number="256"]  { background:#eedcff; }
+    .cell[data-number="512"]  { background:#cfe9ff; }
+    .cell[data-number="1024"] { background:#ffe1c4; }
+    .cell[data-number="2048"] { background:#f4d6ff; }
+    .cell[data-number="4096"] { background:#c7f5c4; }
+    .cell[data-number="8192"] { background:#ffb9b9; }
+
+    .love-bubble {
+      position:absolute;
+      max-width:80%;
+      padding:8px 12px;
+      border-radius:999px;
+      background:rgba(255,255,255,0.96);
+      border:2px solid var(--accent-color);
+      box-shadow:var(--shadow);
+      font-size:0.8rem;
+      font-weight:700;
+      text-align:center;
+      animation:loveFloat 2.4s ease-out forwards;
+      pointer-events:none;
+      z-index:10;
+    }
+    @keyframes loveFloat {
+      0%   { opacity:0; transform:translateY(10px) scale(0.9); }
+      20%  { opacity:1; transform:translateY(0)    scale(1);   }
+      80%  { opacity:1; transform:translateY(-8px) scale(1);   }
+      100% { opacity:0; transform:translateY(-18px)scale(0.97);}
+    }
+
+    .preview-bubble {
+      position:absolute;
+      padding:4px 8px;
+      border-radius:999px;
+      background:rgba(255,255,255,0.95);
+      border:2px solid var(--accent-color);
+      font-size:0.75rem;
+      font-weight:700;
+      pointer-events:none;
+      transform:translate(-50%,-130%);
+      white-space:nowrap;
+      box-shadow:var(--shadow);
+      opacity:0;
+      transition:opacity 0.1s ease;
+      z-index:9;
+    }
+
+    .victory-overlay,
+    .level-overlay {
+      position:fixed;
+      inset:0;
+      background:rgba(255,245,247,0.96);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:20;
+    }
+    .victory-overlay.hidden,
+    .level-overlay.hidden {
+      display:none;
+    }
+    .victory-content,
+    .level-content {
+      background:#fff;
+      border-radius:20px;
+      padding:22px 18px;
+      box-shadow:0 18px 40px rgba(233,30,99,0.35);
+      text-align:center;
+      max-width:92%;
+    }
+    .victory-title,
+    .level-title {
+      font-size:1.5rem;
+      color:var(--primary-color);
+      margin-bottom:8px;
+      font-weight:900;
+    }
+    .victory-text,
+    .level-text {
+      font-size:0.95rem;
+      margin-bottom:12px;
+    }
+    .level-stats {
+      font-size:0.85rem;
+      text-align:left;
+      margin:0 auto 10px;
+      max-width:260px;
+      line-height:1.4;
+    }
+    .level-countdown {
+      font-weight:700;
+      margin-top:4px;
+    }
+
+    .settings-screen {
+      padding:20px 18px;
+      text-align:center;
+    }
+    .settings-title {
+      font-size:1.6rem;
+      margin-bottom:16px;
+      color:var(--primary-color);
+      font-weight:800;
+    }
+    .settings-options {
+      max-width:320px;
+      width:100%;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .setting-item {
+      background:#fff;
+      border-radius:12px;
+      padding:10px 12px;
+      box-shadow:var(--shadow);
+      text-align:left;
+    }
+    .setting-label {
+      font-weight:700;
+      font-size:0.9rem;
+      margin-bottom:4px;
+    }
+    .setting-control {
+      width:100%;
+      padding:6px 8px;
+      border-radius:8px;
+      border:2px solid var(--accent-color);
+      font-size:0.9rem;
+      background:#fff;
+    }
+    .back-btn-menu {
+      margin-top:16px;
+    }
+
+    @media (max-height:620px){
+      .game-screen { padding-top:6px; }
+      .grid { padding:4px; }
+    }
+    @media (max-width:340px){
+      .menu-buttons { max-width:250px; }
+      .bonus-btn { min-width:68px; font-size:0.7rem; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="floating-hearts" id="floatingHearts"></div>
+
+  <div class="victory-overlay hidden" id="victoryOverlay">
+    <div class="victory-content">
+      <div class="victory-title">🎉 Кохана, ти це зробила! 🎉</div>
+      <div class="victory-text">
+        Ти пройшла всі рівні цієї маленької гри, але моє кохання до тебе не має меж 💖
+      </div>
+      <div class="menu-buttons" style="margin-top:8px;">
+        <button class="menu-btn" id="playAgainBtn">🔄 Почати знову</button>
+        <button class="menu-btn secondary" id="backToMenuBtn">🏠 Головне меню</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="level-overlay hidden" id="levelOverlay">
+    <div class="level-content">
+      <div class="level-title" id="levelOverlayTitle">Рівень пройдено ✨</div>
+      <div class="level-text" id="levelOverlayText"></div>
+      <div class="level-stats" id="levelStats"></div>
+      <div class="level-countdown" id="levelCountdown"></div>
+    </div>
+  </div>
+
+  <div class="screen main-menu" id="mainMenuScreen">
+    <div class="game-title">❤️ Love Puzzle для моєї дружини ❤️</div>
+    <div class="subtitle">
+      Це невеличка гра, але в кожній клітинці тут — частинка мого кохання до тебе.
+    </div>
+    <div class="menu-buttons">
+      <button class="menu-btn" id="playBtn">🎮 Нова гра</button>
+      <button class="menu-btn secondary" id="settingsBtn">⚙️ Налаштування</button>
+      <button class="menu-btn secondary" id="aboutBtn">ℹ️ Про гру</button>
+    </div>
+    <div class="menu-features">
+      <div class="feature-item">💖 Я тебе люблю</div>
+      <div class="feature-item">ти — моє сонечко</div>
+      <div class="feature-item">ти моя радість</div>
+      <div class="feature-item">ти моє назавжди 💕</div>
+    </div>
+  </div>
+
+  <div class="screen game-screen hidden" id="gameScreen">
+    <div class="game-header-row">
+      <button class="home-btn" id="homeBtn">🏠</button>
+      <div class="header-text">Сонечко, я тебе кохаю ❤️</div>
+      <button class="save-btn" id="saveBtn">💾</button>
+    </div>
+
+    <div class="goal-box">
+      <span id="levelLabel">Рівень 1</span>&nbsp;·&nbsp;Ціль: <span id="targetValue">64</span>
+    </div>
+
+    <div class="xp-wrap">
+      <div class="xp-label">Очки кохання на цьому рівні ✨</div>
+      <div class="xp-bar">
+        <div class="xp-inner" id="xpBar"></div>
+        <div class="xp-text" id="xpText">0</div>
+      </div>
+    </div>
+
+    <div class="bonuses">
+      <button class="bonus-btn" id="bonus-destroy">
+        💖 Розбити <span class="bonus-count" id="destroyCount">×0</span>
+      </button>
+      <button class="bonus-btn" id="bonus-shuffle">
+        🔄 Перемішати <span class="bonus-count" id="shuffleCount">×0</span>
+      </button>
+      <button class="bonus-btn" id="bonus-explosion">
+        💥 Вибух 3×3 <span class="bonus-count" id="explosionCount">×0</span>
+      </button>
+    </div>
+
+    <div class="game-content">
+      <div class="grid-container">
+        <div class="grid" id="grid"></div>
+        <div class="preview-bubble" id="previewBubble">= 0</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen settings-screen hidden" id="settingsScreen">
+    <div class="settings-title">Налаштування ⚙️</div>
+    <div class="settings-options">
+      <div class="setting-item">
+        <span class="setting-label">Анімації:</span>
+        <select class="setting-control" id="animationSelect">
+          <option value="on" selected>Увімкнені</option>
+          <option value="off">Вимкнені</option>
+        </select>
+      </div>
+      <div class="setting-item">
+        <span class="setting-label">Любовні фрази:</span>
+        <select class="setting-control" id="phrasesSelect">
+          <option value="normal" selected>Звичайний режим</option>
+          <option value="more">Більше фраз 💕</option>
+        </select>
+      </div>
+    </div>
+    <div class="menu-buttons back-btn-menu">
+      <button class="menu-btn" id="saveSettingsBtn">💾 Зберегти</button>
+      <button class="menu-btn secondary" id="backFromSettingsBtn">← Назад</button>
+    </div>
+  </div>
+
+  <div class="screen settings-screen hidden" id="aboutScreen">
+    <div class="settings-title">Про гру ℹ️</div>
+    <div class="settings-options">
+      <div class="setting-item" style="text-align:center;">
+        <p style="margin-bottom:10px;font-weight:700;">
+          Ця гра створена як маленький подарунок коханій дружині 💖
+        </p>
+        <p style="font-size:0.9rem;line-height:1.4;">
+          Об’єднуй числа дотиком, збирай більші значення та відкривай
+          нові рівні нашого кохання. Кожна комбінація — ще один крок до великого почуття.
+        </p>
+        <p style="margin-top:10px;font-size:0.9rem;line-height:1.4;">
+          Ніяких таймерів, ніякого примусу — тільки ти, числа та моє кохання до тебе.
+        </p>
+      </div>
+    </div>
+    <div class="menu-buttons back-btn-menu">
+      <button class="menu-btn secondary" id="backFromAboutBtn">← Назад</button>
+    </div>
+  </div>
+
+  <script>
+    class LoveNumberPuzzle {
+      constructor() {
+        this.GRID_W = 5;
+        this.GRID_H = 8;
+
+        this.levels = this.generateLevels(40);
+        this.MAX_LEVEL = this.levels.length;
+
+        this.currentLevel = 0;
+        this.grid = [];
+        this.selected = [];
+        this.chainNumbers = [];
+        this.isDragging = false;
+        this.activeBonus = null;
+
+        this.xp = 0;
+        this.gameState = "playing";
+
+        this.animationEnabled = true;
+        this.phrasesMode = "normal";
+
+        this.bonusInventory = {
+          destroy: 0,
+          shuffle: 0,
+          explosion: 0
+        };
+
+        this.pendingTransition = null;
+        this.carryNumberPending = null;
+
+        this.loveMessages = [
+          "Ти — моє сонечко, що зігріває кожен день ☀️",
+          "З тобою навіть звичайний день перетворюється на свято 🎉",
+          "Я кохаю тебе до безкінечності й назад ♾️",
+          "Твої очі — мій улюблений всесвіт ✨",
+          "Ти робиш моє серце спокійним і щасливим 💗",
+          "Кожен твій сміх — як маленьке диво для мене 🌸",
+          "Мені пощастило, що ти — саме ти 🥰",
+          "Хочу тримати тебе за руку все життя 🤝",
+          "Ти найніжніше, що у мене є 💕",
+          "Ти — моя тиха гавань у бурхливому світі ⚓",
+          "З тобою будь-який шлях здається легшим 🚶‍♀️",
+          "Коли ти посміхаєшся, світ стає кращим 😊",
+          "Моє кохання до тебе зростає щодня 🌱",
+          "Ти — моя найбільша радість і підтримка 💞",
+          "Я вдячний долі за тебе, моя кохана 💝",
+          "Твоє ім'я — найулюбленіше слово для мене 💬",
+          "Я кохаю тебе більше, ніж сьогодні, але менше, ніж завтра 💫",
+          "Ти — мій дім, де б ми не були 🏡",
+          "Мені хочеться обіймати тебе безкінечно 🤗",
+          "Ти — моє найкраще «назавжди» 🌹",
+          "Твоя присутність — це найкращий подарунок, який коли-небудь отримував ❤️",
+          "Завжди знаходжу в тобі спокій і відповіді на всі питання 🕊️",
+          "Кожна мить поруч — це сторінка в моїй улюбленій книзі 📖",
+          "Ти — причина, по якій я посміхаюся без причини 😄",
+          "Моя любов до тебе не має ваги, але вона — моя найтяжча ноша (бо її так багато) 💎",
+          "Ти — моя найзаповітніша мрія, що стала реальністю 🌌",
+          "З тобою кожен ранок починається з щастя 🌅",
+          "Ти — моя опора, я без тебе — як корабель без вітрил ⛵",
+          "Кохання до тебе — це не почуття, це стан мого буття 🫀",
+          "Ти — казка, в яку я повірив і в якій захотів залишитися назавжди 🏰",
+          "Твоє серце — це єдине місце, де я хочу бути вдома 🔑",
+          "Я кохаю не тільки тебе, але й себе поруч із тобою 💞",
+          "Ти робиш мене кращою версією самого себе 🦋",
+          "Навіть тисячі світлових років не вистачило б, щоб пройти шлях від мого серця до твого і назад ✨",
+          "Ти — моє «назавжди», почате з «привіт» 👫",
+          "Коли я дивлюся в майбутнє, я бачу там тільки тебе 👁️",
+          "Моє серце б'ється в ритмі двох слів — твоє ім'я 💓",
+          "Ти — те, у що я вірив, навіть коли не вірив у чуда 🙏",
+          "Завжди знаходжу в тобі сенс навіть тоді, коли все інше його втрачає 🌟",
+          "Ти — це те, чого я шукав, навіть не знаючи, що втратив 🔍"
+        ];
+
+        this.createFloatingHearts();
+        this.setupUI();
+        this.tryResumeOrShowMenu();
+
+        document.addEventListener("contextmenu", e => e.preventDefault());
+      }
+
+      generateLevels(count) {
+        const levels = [];
+        let target = 64;
+        let baseNumbers = [2,4,8];
+
+        for (let i=0;i<count;i++) {
+          const numbers = [...baseNumbers];
+          const newNumbers = this.generateNewNumbers(target);
+
+          levels.push({
+            target,
+            numbers,
+            newNumbers
+          });
+
+          target *= 2;
+          if (i%3===2 && baseNumbers.length<7) {
+            baseNumbers.push(baseNumbers[baseNumbers.length-1]*2);
+          }
+        }
+        return levels;
+      }
+
+      generateNewNumbers(target) {
+        const arr = [];
+        let num = target/8;
+        for (let i=0;i<8;i++) {
+          if (num <= target) {
+            arr.push(num);
+            num *= 2;
+          }
+        }
+        return arr;
+      }
+
+      createFloatingHearts() {
+        const container = document.getElementById("floatingHearts");
+        const count = 14;
+        for (let i=0;i<count;i++) {
+          const h = document.createElement("div");
+          h.className = "floating-heart";
+          h.textContent = "❤️";
+          h.style.left = Math.random()*100 + "vw";
+          h.style.top  = Math.random()*100 + "vh";
+          h.style.animationDelay = Math.random()*7 + "s";
+          h.style.fontSize = (0.7+Math.random()*0.9)+"rem";
+          container.appendChild(h);
+        }
+      }
+
+      setupUI() {
+        document.getElementById("playBtn").addEventListener("click", () => this.startNewGame());
+        document.getElementById("settingsBtn").addEventListener("click", () => this.showScreen("settings"));
+        document.getElementById("aboutBtn").addEventListener("click", () => this.showScreen("about"));
+        document.getElementById("homeBtn").addEventListener("click", () => this.showScreen("mainMenu"));
+        document.getElementById("saveBtn").addEventListener("click", () => {
+          this.saveGameState();
+          this.showLoveMessage("Прогрес збережено 💖");
+        });
+
+        document.getElementById("backFromSettingsBtn").addEventListener("click", () => this.showScreen("mainMenu"));
+        document.getElementById("backFromAboutBtn").addEventListener("click", () => this.showScreen("mainMenu"));
+
+        document.getElementById("saveSettingsBtn").addEventListener("click", () => {
+          this.animationEnabled = document.getElementById("animationSelect").value === "on";
+          this.phrasesMode = document.getElementById("phrasesSelect").value;
+          this.saveGameState();
+          this.showScreen("mainMenu");
+        });
+
+        document.getElementById("playAgainBtn").addEventListener("click", () => {
+          this.hideVictory();
+          this.startNewGame();
+        });
+        document.getElementById("backToMenuBtn").addEventListener("click", () => {
+          this.hideVictory();
+          this.showScreen("mainMenu");
+        });
+
+        document.getElementById("bonus-destroy").addEventListener("click", () => this.activateBonus("destroy"));
+        document.getElementById("bonus-shuffle").addEventListener("click", () => this.activateBonus("shuffle"));
+        document.getElementById("bonus-explosion").addEventListener("click", () => this.activateBonus("explosion"));
+
+        const grid = document.getElementById("grid");
+        grid.addEventListener("pointerdown", e => this.handlePointerDown(e));
+        grid.addEventListener("pointermove", e => this.handlePointerMove(e));
+        grid.addEventListener("pointerup", () => this.handlePointerUp());
+        grid.addEventListener("pointercancel", () => this.handlePointerUp());
+      }
+
+      tryResumeOrShowMenu() {
+        const raw = localStorage.getItem("lovePuzzleSave");
+        if (!raw) {
+          this.showScreen("mainMenu");
+          return;
+        }
+        try {
+          const data = JSON.parse(raw);
+          if (!data || typeof data !== "object") throw new Error("bad");
+          this.restoreFromState(data);
+          this.showScreen("game");
+          this.render();
+        } catch (e) {
+          console.error("Restore fail:", e);
+          this.showScreen("mainMenu");
+        }
+      }
+
+      restoreFromState(state) {
+        this.currentLevel = Math.min(
+          state.currentLevel ?? 0,
+          this.MAX_LEVEL-1
+        );
+        this.xp = state.xp ?? 0;
+        this.bonusInventory = state.bonusInventory || {destroy:0,shuffle:0,explosion:0};
+        this.animationEnabled = state.animationEnabled !== false;
+        this.phrasesMode = state.phrasesMode || "normal";
+        this.pendingTransition = state.pendingTransition || null;
+
+        const animSel = document.getElementById("animationSelect");
+        const phrSel  = document.getElementById("phrasesSelect");
+        if (animSel) animSel.value = this.animationEnabled ? "on" : "off";
+        if (phrSel)  phrSel.value  = this.phrasesMode;
+
+        const numbers = state.grid;
+        if (Array.isArray(numbers) && numbers.length === this.GRID_W) {
+          this.grid = [];
+          for (let x=0;x<this.GRID_W;x++) {
+            this.grid[x] = [];
+            for (let y=0;y<this.GRID_H;y++) {
+              const num = numbers[x]?.[y] ?? 2;
+              this.grid[x][y] = { number: num, merged:false };
+            }
+          }
+          if (this.pendingTransition && this.pendingTransition.active) {
+            this.currentLevel = Math.min(this.pendingTransition.nextLevel, this.MAX_LEVEL-1);
+            this.carryNumberPending = this.pendingTransition.carryNumber ?? null;
+            this.pendingTransition = null;
+            this.initGame(this.currentLevel);
+            this.saveGameState();
+          } else {
+            this.updateTargetInfo();
+            this.updateXPBar();
+            this.updateBonusButtons();
+          }
+        } else {
+          this.initGame(this.currentLevel);
+          this.saveGameState();
+        }
+      }
+
+      showScreen(name) {
+        document.querySelectorAll(".screen").forEach(s => s.classList.add("hidden"));
+        const screen = document.getElementById(name+"Screen");
+        if(screen) screen.classList.remove("hidden");
+      }
+
+      startNewGame() {
+        this.currentLevel = 0;
+        this.xp = 0;
+        this.bonusInventory = { destroy:0, shuffle:0, explosion:0 };
+        this.pendingTransition = null;
+        this.carryNumberPending = null;
+        this.initGame(0);
+        this.saveGameState();
+        this.showScreen("game");
+      }
+
+      initGame(levelIndex=0) {
+        this.currentLevel = levelIndex;
+        const level = this.levels[this.currentLevel];
+
+        this.selected = [];
+        this.chainNumbers = [];
+        this.gameState = "playing";
+        this.activeBonus = null;
+
+        this.grid = [];
+        const minBase = this.computeMinBaseForLevel(level);
+        const baseFiltered = level.numbers.filter(n=>n>=minBase);
+        const pool = baseFiltered.length ? baseFiltered : level.numbers;
+
+        for (let x=0;x<this.GRID_W;x++) {
+          this.grid[x] = [];
+          for (let y=0;y<this.GRID_H;y++) {
+            this.grid[x][y] = {
+              number: pool[Math.floor(Math.random()*pool.length)],
+              merged: false
+            };
+          }
+        }
+
+        let carryPos = null;
+        if (this.carryNumberPending != null) {
+          const val = this.carryNumberPending;
+          this.carryNumberPending = null;
+          const rx = Math.floor(Math.random()*this.GRID_W);
+          const ry = Math.floor(Math.random()*this.GRID_H);
+          this.grid[rx][ry].number = val;
+          this.grid[rx][ry].merged = false;
+          carryPos = {x:rx,y:ry};
+        }
+
+        this.updateTargetInfo();
+        this.updateXPBar();
+        this.updateBonusButtons();
+        this.render();
+
+        if (carryPos) {
+          setTimeout(()=>this.animateCarryAppear(carryPos.x,carryPos.y), 50);
+        }
+      }
+
+      computeMinBaseForLevel(level) {
+        const t = level.target;
+        if (t <= 256) return 2;
+        if (t <= 1024) return 4;
+        if (t <= 4096) return 8;
+        if (t <= 16384) return 16;
+        if (t <= 65536) return 32;
+        return 64;
+      }
+
+      updateTargetInfo() {
+        const level = this.levels[this.currentLevel];
+        document.getElementById("targetValue").textContent = this.formatNumber(level.target);
+        document.getElementById("levelLabel").textContent = "Рівень " + (this.currentLevel+1);
+      }
+
+      render() {
+        const gridDiv = document.getElementById("grid");
+        gridDiv.innerHTML = "";
+
+        for (let y=0;y<this.GRID_H;y++) {
+          for (let x=0;x<this.GRID_W;x++) {
+            const cellData = this.grid[x][y];
+
+            // страховка от null
+            let num = cellData.number;
+            if (num == null) {
+              const level = this.levels[this.currentLevel];
+              const minBase = this.computeMinBaseForLevel(level);
+              const baseFiltered = level.numbers.filter(v => v >= minBase);
+              const pool = baseFiltered.length ? baseFiltered : level.numbers;
+              num = pool[Math.floor(Math.random()*pool.length)];
+              cellData.number = num;
+            }
+
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            cell.dataset.x = x;
+            cell.dataset.y = y;
+            cell.dataset.number = num;
+
+            if (this.selected.some(s=>s.x===x && s.y===y)) {
+              cell.classList.add("selected");
+            }
+            if (cellData.merged) {
+              cell.classList.add("merged");
+            }
+            const inner = document.createElement("div");
+            inner.className = "cell-inner";
+            inner.textContent = this.formatNumber(num);
+            cell.appendChild(inner);
+
+            gridDiv.appendChild(cell);
+          }
+        }
+      }
+
+      animateCarryAppear(x,y) {
+        const gridDiv = document.getElementById("grid");
+        const cell = gridDiv.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+        if (!cell) return;
+        cell.classList.add("carry");
+        setTimeout(()=>cell.classList.remove("carry"), 500);
+      }
+
+      getCellFromPoint(clientX, clientY) {
+        const el = document.elementFromPoint(clientX, clientY);
+        if (!el) return null;
+        const cell = el.classList.contains("cell") ? el : el.closest(".cell");
+        if (!cell) return null;
+        return { x:parseInt(cell.dataset.x,10), y:parseInt(cell.dataset.y,10) };
+      }
+
+      handlePointerDown(e) {
+        if (this.gameState !== "playing") return;
+        const posCell = this.getCellFromPoint(e.clientX, e.clientY);
+        if (!posCell) return;
+
+        if (this.activeBonus === "destroy") {
+          this.useDestroyBonus(posCell.x,posCell.y);
+          return;
+        }
+        if (this.activeBonus === "explosion") {
+          this.useExplosionBonus(posCell.x,posCell.y);
+          return;
+        }
+
+        this.isDragging = true;
+        this.selected = [posCell];
+        this.chainNumbers = [this.grid[posCell.x][posCell.y].number];
+        this.updatePreviewBubble(this.getCurrentChainSum(), e);
+        this.render();
+      }
+
+      handlePointerMove(e) {
+        if (!this.isDragging || this.activeBonus) return;
+        e.preventDefault();
+
+        const posCell = this.getCellFromPoint(e.clientX,e.clientY);
+        this.updatePreviewBubble(this.getCurrentChainSum(), e);
+
+        if (!posCell) return;
+        const len = this.selected.length;
+        if (len === 0) return;
+
+        if (len >= 2) {
+          const prev = this.selected[len-2];
+          if (prev.x === posCell.x && prev.y === posCell.y) {
+            this.selected.pop();
+            this.chainNumbers.pop();
+            this.updatePreviewBubble(this.getCurrentChainSum(), e);
+            this.render();
+            return;
+          }
+        }
+
+        if (this.selected.some(s=>s.x===posCell.x && s.y===posCell.y)) return;
+
+        const last = this.selected[len-1];
+        if (!this.isAdjacent(last,posCell)) return;
+
+        const newNum = this.grid[posCell.x][posCell.y].number;
+        const prevNum = this.chainNumbers[this.chainNumbers.length-1];
+
+        if (newNum === prevNum || newNum === prevNum*2) {
+          this.selected.push(posCell);
+          this.chainNumbers.push(newNum);
+          this.updatePreviewBubble(this.getCurrentChainSum(), e);
+          this.render();
+        }
+      }
+
+      handlePointerUp() {
+        if (!this.isDragging) return;
+        this.isDragging = false;
+        this.hidePreviewBubble();
+
+        if (this.selected.length >= 2) {
+          this.mergeChain();
+        } else {
+          this.selected = [];
+          this.chainNumbers = [];
+          this.render();
+        }
+      }
+
+      isAdjacent(a,b) {
+        return Math.abs(a.x-b.x) <= 1 && Math.abs(a.y-b.y) <= 1;
+      }
+
+      getCurrentChainSum() {
+        return this.chainNumbers.reduce((s,v)=>s+v,0);
+      }
+
+      isPowerOfTwo(num) {
+        return num > 0 && (num & (num - 1)) === 0;
+      }
+
+      isValidResultNumber(num, level) {
+        const minBase = this.computeMinBaseForLevel(level);
+
+        if (!this.isPowerOfTwo(num)) return false;
+        if (num < minBase) return false;
+
+        const maxAllowed = level.target * 2;
+        if (num > maxAllowed) return false;
+
+        return true;
+      }
+
+      mergeChain() {
+        const level = this.levels[this.currentLevel];
+        const sum = this.getCurrentChainSum();
+        const anchor = this.selected[this.selected.length-1];
+        const removedCells = this.selected.slice(0,-1);
+
+        if (!this.isValidResultNumber(sum, level)) {
+          this.showLoveMessage("Спробуй іншу комбінацію, кохана 💕");
+          this.selected = [];
+          this.chainNumbers = [];
+          this.render();
+          return;
+        }
+
+        this.animatePopping(removedCells, () => {
+          this.applyLocalGravity(removedCells, anchor);
+          this.grid[anchor.x][anchor.y].number = sum;
+          this.grid[anchor.x][anchor.y].merged = true;
+
+          const xpEarned = this.calculateXP(this.selected.length);
+          this.xp += xpEarned;
+
+          this.selected = [];
+          this.chainNumbers = [];
+
+          this.updateXPBar();
+          this.updateBonusButtons();
+          this.render();
+          this.saveGameState();
+          this.checkWin();
+          if (this.gameState === "playing") {
+            this.showRandomLoveMessage();
+          }
+        });
+      }
+
+      animatePopping(cells, callback) {
+        if (!this.animationEnabled) {
+          callback();
+          return;
+        }
+        const gridDiv = document.getElementById("grid");
+        cells.forEach(s=>{
+          const cell = gridDiv.querySelector(`.cell[data-x="${s.x}"][data-y="${s.y}"]`);
+          if (cell) cell.classList.add("popping");
+        });
+        setTimeout(() => callback(), 230);
+      }
+
+      applyLocalGravity(removedCells, anchor) {
+        const level = this.levels[this.currentLevel];
+        const minBase = this.computeMinBaseForLevel(level);
+        const baseFiltered = level.numbers.filter(n => n >= minBase);
+        const pool = baseFiltered.length ? baseFiltered : level.numbers;
+
+        const removedMap = {};
+        removedCells.forEach(c => {
+          if (!removedMap[c.x]) removedMap[c.x] = new Set();
+          removedMap[c.x].add(c.y);
+        });
+
+        const anchorX = anchor ? anchor.x : null;
+        const anchorY = anchor ? anchor.y : null;
+
+        for (let x = 0; x < this.GRID_W; x++) {
+          const stack = [];
+          let anchorValue = null;
+
+          for (let y = 0; y < this.GRID_H; y++) {
+            const isRemoved = removedMap[x]?.has(y);
+            const isAnchor  = (anchorX === x && anchorY === y);
+
+            if (isAnchor) {
+              anchorValue = this.grid[x][y].number;
+            } else if (!isRemoved) {
+              stack.push(this.grid[x][y].number);
+            }
+          }
+
+          const totalCells = this.GRID_H - (anchorX === x && anchorY !== null ? 1 : 0);
+
+          while (stack.length < totalCells) {
+            stack.push(pool[Math.floor(Math.random() * pool.length)]);
+          }
+
+          for (let y = this.GRID_H - 1; y >= 0; y--) {
+            const isAnchor = (anchorX === x && anchorY === y);
+            if (isAnchor) {
+              this.grid[x][y] = { number: anchorValue, merged: false };
+            } else {
+              const num = stack.pop();
+              this.grid[x][y] = { number: num, merged: false };
+            }
+          }
+        }
+      }
+
+      calculateXP(len) {
+        if (len === 2) return 1;
+        if (len === 3) return 4;
+        if (len === 4) return 8;
+        if (len === 5) return 15;
+        if (len >= 6) return 25;
+        return 0;
+      }
+
+      updateXPBar() {
+        const bar = document.getElementById("xpBar");
+        const txt = document.getElementById("xpText");
+        bar.style.width = "100%";
+        txt.textContent = this.xp.toString();
+      }
+
+      activateBonus(type) {
+        if (this.activeBonus === type) {
+          this.activeBonus = null;
+          this.updateBonusButtons();
+          return;
+        }
+
+        if (this.bonusInventory[type] <= 0) {
+          this.showLoveMessage("Поки що нема такого бонусу, кохана 💕");
+          return;
+        }
+
+        if (type === "shuffle") {
+          this.bonusInventory.shuffle--;
+          this.shuffleGrid();
+          this.updateBonusButtons();
+          this.saveGameState();
+          this.showLoveMessage("Поле перемішано з любов'ю 💫");
+          return;
+        }
+
+        this.activeBonus = type;
+        this.updateBonusButtons();
+        this.showLoveMessage("Обери клітинку для бонусу, кохана ✨");
+      }
+
+      shuffleGrid() {
+        const all = [];
+        for (let x=0;x<this.GRID_W;x++) {
+          for (let y=0;y<this.GRID_H;y++) {
+            all.push(this.grid[x][y].number);
+          }
+        }
+        for (let i=all.length-1;i>0;i--) {
+          const j=Math.floor(Math.random()*(i+1));
+          [all[i],all[j]]=[all[j],all[i]];
+        }
+        let k=0;
+        for (let x=0;x<this.GRID_W;x++) {
+          for (let y=0;y<this.GRID_H;y++) {
+            this.grid[x][y].number = all[k++];
+            this.grid[x][y].merged=false;
+          }
+        }
+        this.render();
+      }
+
+      useDestroyBonus(x,y) {
+        if (this.bonusInventory.destroy <= 0) {
+          this.showLoveMessage("Поки що нема такого бонусу, кохана 💕");
+          this.activeBonus = null;
+          this.updateBonusButtons();
+          return;
+        }
+        this.bonusInventory.destroy--;
+
+        const level = this.levels[this.currentLevel];
+        const minBase = this.computeMinBaseForLevel(level);
+        const baseFiltered = level.numbers.filter(n=>n>=minBase);
+        const pool = baseFiltered.length ? baseFiltered : level.numbers;
+
+        this.grid[x][y].number = pool[Math.floor(Math.random()*pool.length)];
+        this.activeBonus = null;
+        this.updateBonusButtons();
+        this.render();
+        this.saveGameState();
+        this.showLoveMessage("Ми оновили цю клітинку з любов'ю 💖");
+      }
+
+      useExplosionBonus(x,y) {
+        if (this.bonusInventory.explosion <= 0) {
+          this.showLoveMessage("Поки що нема такого бонусу, кохана 💕");
+          this.activeBonus = null;
+          this.updateBonusButtons();
+          return;
+        }
+        this.bonusInventory.explosion--;
+
+        const level = this.levels[this.currentLevel];
+        const minBase = this.computeMinBaseForLevel(level);
+        const baseFiltered = level.numbers.filter(n=>n>=minBase);
+        const pool = baseFiltered.length ? baseFiltered : level.numbers;
+
+        for (let dx=-1;dx<=1;dx++) {
+          for (let dy=-1;dy<=1;dy++) {
+            const nx=x+dx, ny=y+dy;
+            if (nx>=0 && nx<this.GRID_W && ny>=0 && ny<this.GRID_H) {
+              this.grid[nx][ny].number=pool[Math.floor(Math.random()*pool.length)];
+              this.grid[nx][ny].merged=false;
+            }
+          }
+        }
+        this.activeBonus = null;
+        this.updateBonusButtons();
+        this.render();
+        this.saveGameState();
+        this.showLoveMessage("Невеличкий вибух кохання 💥❤️");
+      }
+
+      updateBonusButtons() {
+        const d = document.getElementById("destroyCount");
+        const s = document.getElementById("shuffleCount");
+        const e = document.getElementById("explosionCount");
+        d.textContent = "×"+this.bonusInventory.destroy;
+        s.textContent = "×"+this.bonusInventory.shuffle;
+        e.textContent = "×"+this.bonusInventory.explosion;
+
+        ["destroy","shuffle","explosion"].forEach(type=>{
+          const btn = document.getElementById("bonus-"+type);
+          btn.disabled = (this.bonusInventory[type] <= 0 && this.activeBonus!==type);
+          btn.classList.toggle("active", this.activeBonus===type);
+        });
+      }
+
+      getMaxNumberOnGrid() {
+        let max = 0;
+        for (let x=0;x<this.GRID_W;x++) {
+          for (let y=0;y<this.GRID_H;y++) {
+            const v = this.grid[x][y].number;
+            if (v!=null && v>max) max=v;
+          }
+        }
+        return max;
+      }
+
+      checkWin() {
+        const level = this.levels[this.currentLevel];
+        for (let x=0;x<this.GRID_W;x++) {
+          for (let y=0;y<this.GRID_H;y++) {
+            if (this.grid[x][y].number === level.target) {
+              this.gameState="win";
+              this.handleLevelComplete();
+              return;
+            }
+          }
+        }
+      }
+
+      handleLevelComplete() {
+        const oldXp = this.xp;
+        const maxNumber = this.getMaxNumberOnGrid();
+
+        const gained = { destroy:0, shuffle:0, explosion:0 };
+        let xpLeft = this.xp;
+
+        while (xpLeft >= 20) { gained.explosion++; xpLeft -= 20; }
+        while (xpLeft >= 10) { gained.shuffle++;   xpLeft -= 10; }
+        while (xpLeft >= 5)  { gained.destroy++;   xpLeft -= 5; }
+
+        this.bonusInventory.destroy += gained.destroy;
+        this.bonusInventory.shuffle += gained.shuffle;
+        this.bonusInventory.explosion += gained.explosion;
+
+        this.xp = 0;
+        this.updateXPBar();
+        this.updateBonusButtons();
+
+        const prevLevelIndex = this.currentLevel;
+        const prevLevelNumber = prevLevelIndex+1;
+        let nextLevelIndex = prevLevelIndex;
+        if (prevLevelIndex < this.MAX_LEVEL-1) {
+          nextLevelIndex = prevLevelIndex+1;
+        }
+
+        const nextLevelNumber = nextLevelIndex+1;
+
+        this.pendingTransition = {
+          active: true,
+          nextLevel: nextLevelIndex,
+          carryNumber: maxNumber
+        };
+        this.saveGameState();
+
+        const overlay = document.getElementById("levelOverlay");
+        const title = document.getElementById("levelOverlayTitle");
+        const text  = document.getElementById("levelOverlayText");
+        const stats = document.getElementById("levelStats");
+        const countdown = document.getElementById("levelCountdown");
+
+        title.textContent = "Рівень " + prevLevelNumber + " досягнуто ✨";
+        text.textContent = "Ти чудово впоралась, кохана.";
+
+        let statsHtml = "";
+        statsHtml += "Очків кохання на цьому рівні: " + oldXp + "<br/>";
+        statsHtml += "Отримано бонусів:<br/>";
+        statsHtml += "• 💖 Розбити: " + gained.destroy + "<br/>";
+        statsHtml += "• 🔄 Перемішати: " + gained.shuffle + "<br/>";
+        statsHtml += "• 💥 Вибух 3×3: " + gained.explosion + "<br/>";
+        statsHtml += "<br/>Ми зберегли число " + this.formatNumber(maxNumber) + " і взяли його з собою 💖";
+
+        stats.innerHTML = statsHtml;
+
+        let seconds = 3;
+        countdown.textContent = "Переходимо на рівень " + nextLevelNumber + " через " + seconds + "…";
+
+        overlay.classList.remove("hidden");
+
+        const timer = setInterval(()=>{
+          seconds--;
+          if (seconds <= 0) {
+            clearInterval(timer);
+            overlay.classList.add("hidden");
+            this.completeLevelTransition();
+          } else {
+            countdown.textContent = "Переходимо на рівень " + nextLevelNumber + " через " + seconds + "…";
+          }
+        },1000);
+      }
+
+      completeLevelTransition() {
+        if (!this.pendingTransition || !this.pendingTransition.active) {
+          return;
+        }
+        const nextLevelIndex = this.pendingTransition.nextLevel;
+        const carry = this.pendingTransition.carryNumber ?? null;
+        this.pendingTransition = null;
+
+        if (nextLevelIndex >= this.MAX_LEVEL-1) {
+          this.currentLevel = this.MAX_LEVEL-1;
+          this.carryNumberPending = carry;
+          this.initGame(this.currentLevel);
+          this.saveGameState();
+          this.showVictory();
+        } else {
+          this.currentLevel = nextLevelIndex;
+          this.carryNumberPending = carry;
+          this.initGame(this.currentLevel);
+          this.saveGameState();
+          this.showLoveMessage("Новий рівень — новий крок нашого кохання 🌸");
+        }
+      }
+
+      showVictory() {
+        document.getElementById("victoryOverlay").classList.remove("hidden");
+      }
+      hideVictory() {
+        document.getElementById("victoryOverlay").classList.add("hidden");
+      }
+
+      showRandomLoveMessage() {
+        let msg;
+        if (this.phrasesMode === "more") {
+          msg = this.loveMessages[Math.floor(Math.random()*this.loveMessages.length)];
+        } else {
+          if (Math.random() < 0.4) {
+            msg = "Ти чудово справляєшся, кохана 💕";
+          } else {
+            msg = this.loveMessages[Math.floor(Math.random()*this.loveMessages.length)];
+          }
+        }
+        this.showLoveMessage(msg);
+      }
+
+      showLoveMessage(text) {
+        const container = document.querySelector("#gameScreen .grid-container");
+        if (!container) return;
+
+        const old = container.querySelector(".love-bubble");
+        if (old) old.remove();
+
+        const bubble = document.createElement("div");
+        bubble.className = "love-bubble";
+        const left = 15 + Math.random()*70;
+        const top  = 25 + Math.random()*50;
+        bubble.style.left = left + "%";
+        bubble.style.top  = top + "%";
+        bubble.textContent = text;
+        container.appendChild(bubble);
+        setTimeout(()=>bubble.remove(), 2600);
+      }
+
+      updatePreviewBubble(sum, e) {
+        const bubble = document.getElementById("previewBubble");
+        if (!bubble) return;
+        bubble.textContent = "= " + this.formatNumber(sum);
+        if (e && e.clientX != null) {
+          const rect = document.querySelector(".grid-container").getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          bubble.style.left = x + "px";
+          bubble.style.top  = y + "px";
+        }
+        bubble.style.opacity = sum>0 ? "1" : "0";
+      }
+
+      hidePreviewBubble() {
+        const bubble = document.getElementById("previewBubble");
+        if (!bubble) return;
+        bubble.style.opacity = "0";
+      }
+
+      formatNumber(num) {
+        if (num >= 1_000_000) return (num/1_000_000).toFixed(1).replace(".0","")+"M";
+        if (num >= 10_000)    return (num/1_000).toFixed(0)+"К";
+        if (num >= 1_000)     return (num/1_000).toFixed(1).replace(".0","")+"К";
+        return num;
+      }
+
+      saveGameState() {
+        try {
+          const gridNumbers = [];
+          for (let x=0;x<this.GRID_W;x++) {
+            gridNumbers[x] = [];
+            for (let y=0;y<this.GRID_H;y++) {
+              gridNumbers[x][y] = this.grid[x][y].number;
+            }
+          }
+          const state = {
+            version: 1,
+            currentLevel: this.currentLevel,
+            xp: this.xp,
+            grid: gridNumbers,
+            bonusInventory: this.bonusInventory,
+            animationEnabled: this.animationEnabled,
+            phrasesMode: this.phrasesMode,
+            pendingTransition: this.pendingTransition
+          };
+          localStorage.setItem("lovePuzzleSave", JSON.stringify(state));
+        } catch (e) {
+          console.error("Save error:", e);
+        }
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      new LoveNumberPuzzle();
+    });
+  </script>
+</body>
+</html>
