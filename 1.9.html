@@ -1,0 +1,2018 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Love Numbers — гра для коханої</title>
+
+  <style>
+    :root {
+      --primary-color: #e91e63;
+      --secondary-color: #ff4081;
+      --accent-color: #f8bbd9;
+      --bg-color: #fff5f7;
+      --text-color: #880e4f;
+      --white: #ffffff;
+      --shadow: 0 4px 15px rgba(233, 30, 99, 0.18);
+      --cell-color: #ffeef2;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #fff5f7 0%, #ffeef2 100%);
+      min-height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      touch-action: manipulation;
+      color: var(--text-color);
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+    }
+
+    /* Фон – плавающие сердечки */
+    .floating-hearts {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -1;
+    }
+    .floating-heart {
+      position: absolute;
+      font-size: 1rem;
+      opacity: 0.14;
+      animation: floatAround 16s linear infinite;
+    }
+    @keyframes floatAround {
+      0%   { transform: translate(0,0) rotate(0deg);   }
+      25%  { transform: translate(50px,70px) rotate(90deg); }
+      50%  { transform: translate(20px,140px) rotate(180deg);}
+      75%  { transform: translate(-40px,110px) rotate(270deg);}
+      100% { transform: translate(0,0) rotate(360deg); }
+    }
+
+    .main-menu { text-align: center; }
+
+    .game-logo {
+      margin-bottom: 8px;
+    }
+    .game-logo span {
+      font-weight: 900;
+      font-size: clamp(1.4rem, 5vw, 1.8rem);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .game-title {
+      font-size: clamp(2rem, 8vw, 2.6rem);
+      font-weight: 900;
+      color: var(--primary-color);
+      margin-bottom: 18px;
+      text-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      animation: heartbeat 2.4s ease-in-out infinite;
+    }
+    @keyframes heartbeat {
+      0%,100% { transform: scale(1); }
+      15%     { transform: scale(1.07); }
+      30%     { transform: scale(0.98); }
+      45%     { transform: scale(1.05); }
+      60%     { transform: scale(1); }
+    }
+
+    .subtitle {
+      max-width: 340px;
+      font-size: 0.95rem;
+      margin-bottom: 22px;
+      line-height: 1.4;
+    }
+
+    .menu-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 280px;
+    }
+    .menu-btn {
+      padding: 14px 18px;
+      border-radius: 16px;
+      border: none;
+      background: linear-gradient(45deg,var(--primary-color),var(--secondary-color));
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    }
+    .menu-btn.secondary {
+      background:#fff;
+      color:var(--primary-color);
+      border:2px solid var(--accent-color);
+    }
+    .menu-btn:active {
+      transform: scale(0.96);
+      box-shadow:0 2px 8px rgba(0,0,0,0.18);
+    }
+
+    .menu-features {
+      margin-top:20px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      max-width:280px;
+    }
+    .feature-item {
+      padding:10px 6px;
+      border-radius:12px;
+      background:#fff;
+      font-size:0.8rem;
+      font-weight:700;
+      box-shadow:var(--shadow);
+    }
+
+    .game-screen {
+      justify-content:flex-start;
+      padding:8px 10px 10px;
+    }
+
+    .game-header-row {
+      width:100%;
+      display:flex;
+      align-items:center;
+      gap:6px;
+      margin-bottom:6px;
+    }
+    .home-btn,
+    .save-btn,
+    .sound-btn {
+      padding:7px 10px;
+      border-radius:10px;
+      border:2px solid var(--accent-color);
+      background:#fff;
+      font-size:1.05rem;
+      cursor:pointer;
+      box-shadow:var(--shadow);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .header-text {
+      flex:1;
+      text-align:center;
+      font-weight:700;
+      font-size:0.9rem;
+    }
+
+    .goal-box {
+      width:100%;
+      margin-top:2px;
+      padding:6px 8px;
+      border-radius:10px;
+      background:#fff;
+      border:2px solid var(--accent-color);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:0.85rem;
+      font-weight:700;
+      box-shadow:var(--shadow);
+      gap: 4px;
+      flex-wrap:wrap;
+    }
+
+    .xp-wrap { width:100%; margin:8px 0 4px; }
+    .xp-bar {
+      position:relative;
+      height:16px;
+      border-radius:10px;
+      border:2px solid var(--accent-color);
+      background:#ffeef2;
+      overflow:hidden;
+      padding:0 6px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      box-shadow: var(--shadow);
+    }
+    .xp-inner {
+      position:absolute;
+      left:0;
+      top:0;
+      bottom:0;
+      width:0%;
+      background:linear-gradient(45deg,var(--primary-color),var(--secondary-color));
+      opacity:0.22;
+      transition:width 0.35s ease;
+    }
+    .xp-text {
+      position:relative;
+      z-index:1;
+      width:100%;
+      text-align:center;
+      font-size:0.75rem;
+      font-weight:700;
+      color:var(--text-color);
+      pointer-events:none;
+    }
+
+    .bonuses {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:6px;
+      flex-wrap:nowrap;
+      margin-bottom:4px;
+      width:100%;
+    }
+    .bonuses-left {
+      display:flex;
+      gap:6px;
+      flex-wrap:nowrap;
+    }
+    .bonus-btn {
+      min-width:40px;
+      padding:6px 6px;
+      border-radius:10px;
+      border:2px solid var(--accent-color);
+      background:var(--cell-color);
+      font-size:1rem;
+      font-weight:700;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow:var(--shadow);
+      transition:transform 0.12s ease, background 0.12s ease, color 0.12s ease, opacity 0.12s ease;
+    }
+    .bonus-btn span { font-size:0.8rem; font-weight:800; }
+    .bonus-btn:active:not(:disabled) { transform:scale(0.95); }
+    .bonus-btn:disabled { opacity:0.4; cursor:not-allowed; box-shadow:none; }
+    .bonus-btn.active { background:var(--primary-color); color:#fff; }
+
+    .dice-btn-label {
+      font-size:0.7rem;
+      margin-left:4px;
+      font-weight:700;
+    }
+
+    .bonus-count {
+      margin-left:4px;
+      font-size:12px;
+      font-weight:700;
+    }
+
+    .game-content { flex:1; width:100%; display:flex; flex-direction:column; margin-top:4px; min-height:0; }
+    .grid-container { flex:1; min-height:0; width:100%; display:flex; align-items:center; justify-content:center; position:relative; }
+    .grid {
+      display:grid; grid-template-columns:repeat(5,1fr); grid-template-rows:repeat(8,1fr);
+      gap:2px; width:100%; max-width:420px; height:100%; max-height:100%;
+      padding:6px; border-radius:14px; background:#fff; box-shadow:var(--shadow);
+      touch-action:none; user-select:none; position:relative; overflow:hidden;
+    }
+
+    .cell {
+      position:relative; border-radius:9px; background:var(--cell-color);
+      box-shadow:0 1px 3px rgba(233,30,99,0.2); overflow:hidden; border:1px solid transparent;
+      cursor:pointer; transition:transform 0.12s.ease, box-shadow 0.12s.ease, border-color 0.12s.ease, opacity 0.12s.ease;
+    }
+    .cell::before { content:""; display:block; padding-top:100%; }
+    .cell-inner {
+      position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+      font-size:clamp(0.8rem,2.4vw,1rem); font-weight:800; color:var(--text-color);
+      pointer-events:none; transition:transform 0.12s.ease, background 0.12s.ease, color 0.12s.ease;
+    }
+    .cell.selected { transform:scale(0.96); border-color:var(--secondary-color); box-shadow:0 0 0 2px rgba(255,64,129,0.45); }
+    .cell.selected .cell-inner { background:var(--secondary-color); color:#fff; border-radius:7px; }
+    .cell.merged .cell-inner { animation:pop 0.22s ease; }
+    .cell.popping { animation:bubbleOut 0.27s ease forwards; }
+    .cell.carry .cell-inner { animation:carryIn 0.45s ease-out; }
+
+    @keyframes pop {
+      0% { transform:scale(1.2); opacity:0.7; }
+      100%{ transform:scale(1);   opacity:1;   }
+    }
+    @keyframes bubbleOut {
+      0% { transform:scale(1);   opacity:1; }
+      100%{ transform:scale(0);   opacity:0;}
+    }
+    @keyframes carryIn {
+      0% { transform:scale(0.3); opacity:0; }
+      60%{ transform:scale(1.1); opacity:1; }
+      100%{transform:scale(1);   opacity:1; }
+    }
+
+    @keyframes shuffleWiggle {
+      0%   { transform:translate(0,0); }
+      20%  { transform:translate(-3px,2px); }
+      40%  { transform:translate(3px,-2px); }
+      60%  { transform:translate(-2px,-1px); }
+      80%  { transform:translate(2px,2px); }
+      100% { transform:translate(0,0); }
+    }
+    .cell.shuffle-anim .cell-inner {
+      animation: shuffleWiggle 0.35s ease;
+    }
+
+    .cell[data-number="2"]    { background:#ffdee7; }
+    .cell[data-number="4"]    { background:#ffe6aa; }
+    .cell[data-number="8"]    { background:#d8ffd2; }
+    .cell[data-number="16"]   { background:#d5f1ff; }
+    .cell[data-number="32"]   { background:#f0d5ff; }
+    .cell[data-number="64"]   { background:#ffd6bf; }
+    .cell[data-number="128"]  { background:#f6f0b8; }
+    .cell[data-number="256"]  { background:#eedcff; }
+    .cell[data-number="512"]  { background:#cfe9ff; }
+    .cell[data-number="1024"] { background:#ffe1c4; }
+    .cell[data-number="2048"] { background:#f4d6ff; }
+    .cell[data-number="4096"] { background:#c7f5c4; }
+    .cell[data-number="8192"] { background:#ffb9b9; }
+
+    .love-bubble {
+      position:absolute; max-width:80%; padding:8px 12px; border-radius:999px;
+      background:rgba(255,255,255,0.96); border:2px solid var(--accent-color); box-shadow:var(--shadow);
+      font-size:0.8rem; font-weight:700; text-align:center; animation:loveFloat 2.4s ease-out forwards;
+      pointer-events:none; z-index:10;
+    }
+    @keyframes loveFloat {
+      0% { opacity:0; transform:translateY(10px) scale(0.9); }
+      20% { opacity:1; transform:translateY(0) scale(1); }
+      80% { opacity:1; transform:translateY(-8px) scale(1); }
+      100% { opacity:0; transform:translateY(-18px) scale(0.97); }
+    }
+
+    .preview-bubble {
+      position:absolute; padding:6px 10px; border-radius:999px; background:rgba(255,255,255,0.98);
+      border:2px solid var(--accent-color); font-size:0.9rem; font-weight:800; pointer-events:none;
+      white-space:nowrap; box-shadow:var(--shadow); opacity:0; transition:opacity 0.1s ease; z-index:9;
+    }
+
+    .victory-overlay,
+    .level-overlay,
+    .dice-overlay {
+      position:fixed; inset:0; background:rgba(255,245,247,0.96);
+      display:flex; align-items:center; justify-content:center; z-index:20;
+    }
+    .victory-overlay.hidden,
+    .level-overlay.hidden,
+    .dice-overlay.hidden {
+      display:none;
+    }
+    .victory-content,
+    .level-content,
+    .dice-content {
+      background:#fff; border-radius:20px; padding:22px 18px;
+      box-shadow:0 18px 40px rgba(233,30,99,0.35); text-align:center; max-width:92%;
+    }
+    .level-title, .victory-title { font-size:1.5rem; color:var(--primary-color); margin-bottom:8px; font-weight:900; }
+    .level-text, .victory-text { font-size:0.95rem; margin-bottom:12px; }
+    .level-stats { font-size:0.85rem; text-align:left; margin:0 auto 10px; max-width:260px; line-height:1.4; }
+    .level-countdown { font-weight:700; margin-top:4px; }
+
+    .dice-title { font-size:1.3rem; font-weight:900; color:var(--primary-color); margin-bottom:8px; }
+    .dice-roller {
+      width:80px; height:80px; margin:8px auto 12px; border-radius:16px;
+      display:flex; align-items:center; justify-content:center; font-size:2rem;
+      background:linear-gradient(45deg,var(--primary-color),var(--secondary-color)); color:#fff; box-shadow:var(--shadow);
+      animation: none;
+    }
+    .dice-roller.spin { animation: spin 1s ease-in-out infinite; }
+    @keyframes spin {
+      0% { transform:rotate(0deg) scale(1); }
+      50%{ transform:rotate(180deg) scale(1.08); }
+      100%{transform:rotate(360deg) scale(1); }
+    }
+    .dice-choices { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+    .dice-choice {
+      min-width:140px; padding:10px 12px; border-radius:12px; border:2px solid var(--accent-color);
+      background:#fff; box-shadow:var(--shadow); cursor:pointer; font-weight:800;
+    }
+    .dice-close { margin-top:10px; }
+
+    .settings-screen {
+      padding:20px 18px; text-align:center;
+    }
+    .settings-title {
+      font-size:1.6rem; margin-bottom:16px; color:var(--primary-color); font-weight:800;
+    }
+    .settings-options {
+      max-width:320px; width:100%; display:flex; flex-direction:column; gap:12px;
+    }
+    .setting-item {
+      background:#fff; border-radius:12px; padding:10px 12px; box-shadow:var(--shadow); text-align:left;
+    }
+    .setting-label { font-weight:700; font-size:0.9rem; margin-bottom:4px; }
+    .setting-control {
+      width:100%; padding:6px 8px; border-radius:8px; border:2px solid var(--accent-color);
+      font-size:0.9rem; background:#fff;
+    }
+    .back-btn-menu { margin-top:16px; }
+
+    @media (max-height:620px){
+      .game-screen { padding-top:6px; }
+      .grid { padding:4px; }
+    }
+    @media (max-width:340px){
+      .menu-buttons { max-width:250px; }
+      .dice-choice { min-width:120px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="floating-hearts" id="floatingHearts"></div>
+
+  <!-- Финальный оверлей -->
+  <div class="victory-overlay hidden" id="victoryOverlay">
+    <div class="victory-content">
+      <div class="victory-title" data-i18n-key="victory_title_ua">🎉 Ти пройшла всі рівні 🎉</div>
+      <div class="victory-text" data-i18n-key="victory_text_ua">
+        У цій грі є фінальний рівень, але в моїх почуттях до тебе — ні. Я кохаю тебе завжди 💖
+      </div>
+      <div class="menu-buttons" style="margin-top:8px;">
+        <button class="menu-btn" id="playAgainBtn" data-i18n-key="btn_play_again_ua">🔄 Почати знову</button>
+        <button class="menu-btn secondary" id="backToMenuBtn" data-i18n-key="btn_back_to_menu_ua">🏠 Головне меню</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Оверлей перехода уровня -->
+  <div class="level-overlay hidden" id="levelOverlay">
+    <div class="level-content">
+      <div class="level-title" id="levelOverlayTitle">Рівень пройдено ✨</div>
+      <div class="level-text" id="levelOverlayText"></div>
+      <div class="level-stats" id="levelStats"></div>
+      <div class="level-countdown" id="levelCountdown"></div>
+    </div>
+  </div>
+
+  <!-- Оверлей кубика -->
+  <div class="dice-overlay hidden" id="diceOverlay">
+    <div class="dice-content">
+      <div class="dice-title" id="diceTitle">Кубик бонусів 🎲</div>
+      <div class="dice-roller" id="diceRoller">🎲</div>
+      <div id="diceInfo" style="margin-bottom:8px; font-weight:700;"></div>
+      <div class="dice-choices" id="diceChoices"></div>
+      <div class="menu-buttons" style="margin-top:10px;">
+        <button class="menu-btn secondary dice-close" id="diceCloseBtn" data-i18n-key="btn_close_dice_ua">Закрити</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ГЛАВНОЕ МЕНЮ -->
+  <div class="screen main-menu" id="mainMenuScreen">
+    <div class="game-logo">
+      <!-- потом можно заменить на картинку: assets/logo/logo-heart.svg -->
+      <span>Love Numbers</span>
+    </div>
+    <div class="game-title" data-i18n-key="main_title_ua">Гра для моєї коханої ❤️</div>
+    <div class="subtitle" data-i18n-key="main_subtitle_ua">
+      Це невеличка гра з числами, у якій кожен рівень — ще один маленький крок мого кохання до тебе.
+    </div>
+    <div class="menu-buttons">
+      <button class="menu-btn" id="continueBtn" data-i18n-key="btn_continue_ua">▶ Продовжити</button>
+      <button class="menu-btn secondary" id="newGameBtn" data-i18n-key="btn_new_game_ua">🎮 Нова гра</button>
+      <button class="menu-btn secondary" id="settingsBtn" data-i18n-key="btn_settings_ua">⚙️ Налаштування</button>
+      <button class="menu-btn secondary" id="aboutBtn" data-i18n-key="btn_about_ua">ℹ️ Про гру</button>
+    </div>
+    <div class="menu-features">
+      <div class="feature-item" data-i18n-key="feature_1_ua">Без поспіху</div>
+      <div class="feature-item" data-i18n-key="feature_2_ua">Тільки ти й числа</div>
+      <div class="feature-item" data-i18n-key="feature_3_ua">Зберігання прогресу</div>
+      <div class="feature-item" data-i18n-key="feature_4_ua">Створено з коханням</div>
+    </div>
+  </div>
+
+  <!-- ИГРОВОЙ ЭКРАН -->
+  <div class="screen game-screen hidden" id="gameScreen">
+    <div class="game-header-row">
+      <button class="home-btn" id="homeBtn">🏠</button>
+      <div class="header-text" id="headerText" data-i18n-key="header_text_ua">
+        Сонечко, я тебе кохаю ❤️
+      </div>
+      <button class="sound-btn" id="soundToggleBtn" title="Звук">🔊</button>
+      <button class="save-btn" id="saveBtn">💾</button>
+    </div>
+
+    <div class="goal-box">
+      <span id="levelLabel">Рівень 1</span>
+      <span>·</span>
+      <span data-i18n-key="goal_label_ua">Ціль</span>:
+      <span id="targetValue">64</span>
+    </div>
+
+    <div class="xp-wrap">
+      <div class="xp-bar">
+        <div class="xp-inner" id="xpBar"></div>
+        <div class="xp-text" id="xpText">Очки кохання: 0</div>
+      </div>
+    </div>
+
+    <div class="bonuses">
+      <div class="bonuses-left">
+        <button class="bonus-btn" id="bonus-explosion" title="Вибух 3×3">
+          💥 <span class="bonus-count" id="count-explosion">0</span>
+        </button>
+        <button class="bonus-btn" id="bonus-shuffle" title="Перемішати">
+          🔄 <span class="bonus-count" id="count-shuffle">0</span>
+        </button>
+        <button class="bonus-btn" id="bonus-destroy" title="Розбити клітинку">
+          🔨 <span class="bonus-count" id="count-destroy">0</span>
+        </button>
+      </div>
+      <button class="bonus-btn" id="bonus-dice" title="Кубик бонусів">
+        🎲 <span class="dice-btn-label">(<span id="diceCostLabel">—</span>)</span>
+      </button>
+    </div>
+
+    <div class="game-content">
+      <div class="grid-container">
+        <div class="grid" id="grid"></div>
+        <div class="preview-bubble" id="previewBubble">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- НАСТРОЙКИ -->
+  <div class="screen settings-screen hidden" id="settingsScreen">
+    <div class="settings-title" data-i18n-key="settings_title_ua">Налаштування ⚙️</div>
+    <div class="settings-options">
+      <div class="setting-item">
+        <span class="setting-label" data-i18n-key="settings_animations_label_ua">Анімації:</span>
+        <select class="setting-control" id="animationSelect">
+          <option value="on" selected data-i18n-key="settings_animations_on_ua">Увімкнені</option>
+          <option value="off" data-i18n-key="settings_animations_off_ua">Вимкнені</option>
+        </select>
+      </div>
+      <div class="setting-item">
+        <span class="setting-label" data-i18n-key="settings_sound_label_ua">Звук:</span>
+        <select class="setting-control" id="soundSelect">
+          <option value="on" selected data-i18n-key="settings_sound_on_ua">Увімкнений</option>
+          <option value="off" data-i18n-key="settings_sound_off_ua">Вимкнений</option>
+        </select>
+      </div>
+      <div class="setting-item">
+        <span class="setting-label" data-i18n-key="settings_language_label_ua">Мова інтерфейсу:</span>
+        <select class="setting-control" id="languageSelect">
+          <option value="ua" data-i18n-key="settings_language_ua_ua">Українська</option>
+          <option value="ru" data-i18n-key="settings_language_ru_ua">Русский</option>
+        </select>
+      </div>
+    </div>
+    <div class="menu-buttons back-btn-menu">
+      <button class="menu-btn" id="saveSettingsBtn" data-i18n-key="btn_save_settings_ua">💾 Зберегти</button>
+      <button class="menu-btn secondary" id="backFromSettingsBtn" data-i18n-key="btn_back_ua">← Назад</button>
+    </div>
+  </div>
+
+  <!-- ЭКРАН "ОБ ИГРЕ" -->
+  <div class="screen settings-screen hidden" id="aboutScreen">
+    <div class="settings-title" data-i18n-key="about_title_ua">Про гру ℹ️</div>
+    <div class="settings-options">
+      <div class="setting-item" style="text-align:center;">
+        <p style="margin-bottom:10px;font-weight:700;" data-i18n-key="about_p1_ua">
+          Ця гра створена як маленький подарунок коханій дружині 💖
+        </p>
+        <p style="font-size:0.9rem;line-height:1.4;" data-i18n-key="about_p2_ua">
+          Об’єднуй однакові та зростаючі числа дотиком, отримуй більші значення
+          й проходь рівень за рівнем — як маленькі кроки нашої історії кохання.
+        </p>
+        <p style="margin-top:10px;font-size:0.9rem;line-height:1.4;" data-i18n-key="about_p3_ua">
+          Тут тільки ти, я, числа й трішки магії між нами ✨
+        </p>
+      </div>
+    </div>
+    <div class="menu-buttons back-btn-menu">
+      <button class="menu-btn secondary" id="backFromAboutBtn" data-i18n-key="btn_back_ua">← Назад</button>
+    </div>
+  </div>
+
+  <script>
+    // I18N: ключи вида key_lang
+    const I18N = {
+      ua: {
+        app_title: "Love Numbers — гра для коханої",
+        main_title_ua: "Гра для моєї коханої ❤️",
+        main_subtitle_ua: "Це невеличка гра з числами, у якій кожен рівень — ще один маленький крок мого кохання до тебе.",
+        btn_continue_ua: "▶ Продовжити",
+        btn_new_game_ua: "🎮 Нова гра",
+        btn_settings_ua: "⚙️ Налаштування",
+        btn_about_ua: "ℹ️ Про гру",
+        btn_play_again_ua: "🔄 Почати знову",
+        btn_back_to_menu_ua: "🏠 Головне меню",
+        btn_save_settings_ua: "💾 Зберегти",
+        btn_back_ua: "← Назад",
+        btn_close_dice_ua: "Закрити",
+        feature_1_ua: "Спокій",
+        feature_2_ua: "Тільки ти й числа",
+        feature_3_ua: "Зберігання прогресу",
+        feature_4_ua: "Створено з коханням",
+        header_text_ua: "Сонечко, я тебе кохаю ❤️",
+        goal_label_ua: "Ціль",
+        xp_label_ua: "Очки кохання",
+
+        settings_title_ua: "Налаштування ⚙️",
+        settings_animations_label_ua: "Анімації:",
+        settings_animations_on_ua: "Увімкнені",
+        settings_animations_off_ua: "Вимкнені",
+        settings_sound_label_ua: "Звук:",
+        settings_sound_on_ua: "Увімкнений",
+        settings_sound_off_ua: "Вимкнений",
+        settings_language_label_ua: "Мова інтерфейсу:",
+        settings_language_ua_ua: "Українська",
+        settings_language_ru_ua: "Русский",
+
+        about_title_ua: "Про гру ℹ️",
+        about_p1_ua: "Ця гра створена як маленький подарунок коханій дружині 💖",
+        about_p2_ua: "Об’єднуй однакові та зростаючі числа дотиком, отримуй більші значення й проходь рівень за рівнем — як маленькі кроки нашої історії кохання.",
+        about_p3_ua: "Тут тільки ти, я, числа й трішки магії між нами ✨",
+
+        victory_title_ua: "🎉 Ти пройшла всі рівні 🎉",
+        victory_text_ua: "У цій грі є фінальний рівень, але в моїх почуттях до тебе — ні. Я кохаю тебе завжди 💖",
+
+        level_reached_title_ua: "Рівень {level} пройдено ✨",
+        level_reached_text_ua: "Ще один крок нашої історії кохання. Рухаємося далі 💕",
+        level_stats_points_ua: "Очки кохання: {points}",
+        level_stats_carry_ua: "Ми зберегли число {value} для наступного рівня.",
+        level_countdown_ua: "Переходимо на рівень {level} через {seconds}…",
+
+        dice_title_ua: "Кубик бонусів 🎲",
+        dice_spinning_ua: "Кубик крутиться…",
+        dice_choose_reward_ua: "Обери свій бонус:",
+        dice_not_enough_ua: "Потрібно трішки більше очок кохання, щоб використати кубик.",
+        dice_btn_ready_ua: "Кубик бонусів",
+        dice_btn_not_ready_ua: "Мало очок кохання",
+
+        confirm_new_game_ua: "Почати нову гру? Поточний прогрес буде втрачено.",
+        save_done_ua: "Прогрес збережено 💖",
+        chain_invalid_ua: "Спробуй іншу комбінацію, кохана 🌸",
+        no_bonus_ua: "Поки що немає такого бонусу.",
+        choose_cell_bonus_ua: "Обери клітинку для бонусу, моє сонечко ☀️",
+        shuffle_done_ua: "Поле трішки перетасувалося для тебе 💫",
+        destroy_done_ua: "Клітинку оновлено.",
+        explosion_done_ua: "Групу клітинок оновлено.",
+
+        msg_random_1_ua: "Ти чудово справляєшся, кохана 💕",
+        msg_random_2_ua: "Кожен твій хід робить цю гру особливою ✨",
+        msg_random_3_ua: "Крок за кроком — і ми разом перемагаємо ❤️",
+        msg_random_4_ua: "Мені подобається спостерігати, як ти граєш 🥰",
+        msg_random_5_ua: "Ця гра — лише привід ще раз сказати, як сильно я тебе кохаю 💗",
+
+        level_label_ua: "Рівень",
+        bonus_destroy_ua: "🔨 Розбити",
+        bonus_shuffle_ua: "🔄 Перемішати",
+        bonus_explosion_ua: "💥 Вибух 3×3",
+        dice_got_ua: "Отримано бонус: {label}."
+      },
+
+      ru: {
+        app_title: "Love Numbers — игра для любимой",
+        main_title_ua: "Игра для моей любимой ❤️",
+        main_subtitle_ua: "Это небольшая игра с числами, где каждый уровень — ещё один маленький шаг моей любви к тебе.",
+        btn_continue_ua: "▶ Продолжить",
+        btn_new_game_ua: "🎮 Новая игра",
+        btn_settings_ua: "⚙️ Настройки",
+        btn_about_ua: "ℹ️ Об игре",
+        btn_play_again_ua: "🔄 Начать заново",
+        btn_back_to_menu_ua: "🏠 Главное меню",
+        btn_save_settings_ua: "💾 Сохранить",
+        btn_back_ua: "← Назад",
+        btn_close_dice_ua: "Закрыть",
+        feature_1_ua: "Розмнренно",
+        feature_2_ua: "Только ты и числа",
+        feature_3_ua: "Сохранение прогресса",
+        feature_4_ua: "Создано с любовью",
+        header_text_ua: "Солнышко, я тебя люблю ❤️",
+        goal_label_ua: "Цель",
+        xp_label_ua: "Очки любви",
+
+        settings_title_ua: "Настройки ⚙️",
+        settings_animations_label_ua: "Анимации:",
+        settings_animations_on_ua: "Включены",
+        settings_animations_off_ua: "Выключены",
+        settings_sound_label_ua: "Звук:",
+        settings_sound_on_ua: "Включён",
+        settings_sound_off_ua: "Выключен",
+        settings_language_label_ua: "Язык интерфейса:",
+        settings_language_ua_ua: "Українська",
+        settings_language_ru_ua: "Русский",
+
+        about_title_ua: "Об игре ℹ️",
+        about_p1_ua: "Эта игра создана как маленький подарок любимой жене 💖",
+        about_p2_ua: "Соединяй одинаковые и растущие числа, получай большие значения и проходи уровень за уровнем — как маленькие шаги нашей истории любви.",
+        about_p3_ua: "Здесь нет спешки. Здесь только ты, я, числа и чуть-чуть магии между нами ✨",
+
+        victory_title_ua: "🎉 Ты прошла все уровни 🎉",
+        victory_text_ua: "В этой игре есть финальный уровень, но в моих чувствах к тебе — нет. Я люблю тебя всегда 💖",
+
+        level_reached_title_ua: "Уровень {level} пройден ✨",
+        level_reached_text_ua: "Ещё один шаг нашей истории любви. Идём дальше 💕",
+        level_stats_points_ua: "Очки любви: {points}",
+        level_stats_carry_ua: "Мы сохранили число {value} для следующего уровня.",
+        level_countdown_ua: "Переходим на уровень {level} через {seconds}…",
+
+        dice_title_ua: "Кубик бонусов 🎲",
+        dice_spinning_ua: "Кубик крутится…",
+        dice_choose_reward_ua: "Выбери свой бонус:",
+        dice_not_enough_ua: "Нужно ещё немного очков любви, чтобы использовать кубик.",
+        dice_btn_ready_ua: "Кубик бонусов",
+        dice_btn_not_ready_ua: "Мало очков любви",
+
+        confirm_new_game_ua: "Начать новую игру? Текущий прогресс будет потерян.",
+        save_done_ua: "Прогресс сохранён 💖",
+        chain_invalid_ua: "Попробуй другую комбинацию, любимая 🌸",
+        no_bonus_ua: "Пока что нет такого бонуса.",
+        choose_cell_bonus_ua: "Выбери клетку для бонуса, моё солнышко ☀️",
+        shuffle_done_ua: "Поле немного перемешалось специально для тебя 💫",
+        destroy_done_ua: "Клетка обновлена.",
+        explosion_done_ua: "Группа клеток обновлена.",
+
+        msg_random_1_ua: "Ты отлично справляешься, любимая 💕",
+        msg_random_2_ua: "Каждый твой ход делает эту игру особенной ✨",
+        msg_random_3_ua: "Шаг за шагом — и мы вместе побеждаем ❤️",
+        msg_random_4_ua: "Мне нравится смотреть, как ты играешь 🥰",
+        msg_random_5_ua: "Эта игра — лишь повод ещё раз сказать, как сильно я тебя люблю 💗",
+
+        level_label_ua: "Уровень",
+        bonus_destroy_ua: "🔨 Разбить",
+        bonus_shuffle_ua: "🔄 Перемешать",
+        bonus_explosion_ua: "💥 Взрыв 3×3",
+        dice_got_ua: "Получен бонус: {label}."
+      }
+    };
+
+    const RANDOM_MESSAGES_KEYS = [
+      "msg_random_1_ua",
+      "msg_random_2_ua",
+      "msg_random_3_ua",
+      "msg_random_4_ua",
+      "msg_random_5_ua"
+    ];
+
+    class LoveNumbersGame {
+      constructor() {
+        this.GRID_W = 5;
+        this.GRID_H = 8;
+
+        this.levels = this.generateLevels(40);
+        this.MAX_LEVEL = this.levels.length;
+
+        this.currentLevel = 0;
+        this.grid = [];
+        this.selected = [];
+        this.chainNumbers = [];
+        this.isDragging = false;
+        this.activeBonus = null;
+
+        this.xp = 0;
+        this.gameState = "playing";
+
+        this.animationEnabled = true;
+        this.lang = "ua";
+        this.soundEnabled = true;
+
+        this.bonusInventory = { destroy: 0, shuffle: 0, explosion: 0 };
+
+        this.pendingTransition = null;
+        this.carryNumberPending = null;
+        this.hasSave = false;
+
+        this.diceRollsToday = 0;
+        this.lastDiceReset = null;
+
+        this.music = null;
+        this.tapSound = null;
+        this.musicInitialized = false;
+
+        this.loveMessagesUa = [
+          "Ти — моє сонечко, що зігріває кожен день ☀️",
+          "З тобою навіть звичайний день перетворюється на свято 🎉",
+          "Я кохаю тебе до безкінечності й назад ♾️",
+          "Твої очі — мій улюблений всесвіт ✨",
+          "Ти робиш моє серце спокійним і щасливим 💗",
+          "Кожен твій сміх — як маленьке диво для мене 🌸",
+          "Мені пощастило, що ти — саме ти 🥰",
+          "Хочу тримати тебе за руку все життя 🤝",
+          "Ти найніжніше, що у мене є 💕",
+          "Ти — моя тиха гавань у бурхливому світі ⚓",
+          "З тобою будь-який шлях здається легшим 🚶‍♀️",
+          "Коли ти посміхаєшся, світ стає кращим 😊",
+          "Моє кохання до тебе зростає щодня 🌱",
+          "Ти — моя найбільша радість і підтримка 💞",
+          "Я вдячний долі за тебе, моя кохана 💝",
+          "Твоє ім'я — найулюбленіше слово для мене 💬",
+          "Я кохаю тебе більше, ніж вчора, але менше, ніж завтра 💫",
+          "Ти — мій дім, де б ми не були 🏡",
+          "Мені хочеться обіймати тебе безкінечно 🤗",
+          "Ти — моє найкраще «назавжди» 🌹"
+        ];
+
+        this.loveMessagesRu = [
+          "Ты — моё солнышко, согревающее каждый день ☀️",
+          "С тобой даже обычный день превращается в праздник 🎉",
+          "Я люблю тебя до бесконечности и обратно ♾️",
+          "Твои глаза — моя любимая вселенная ✨",
+          "Ты делаешь моё сердце спокойным и счастливым 💗",
+          "Каждый твой смех — как маленькое чудо для меня 🌸",
+          "Мне повезло, что ты — именно ты 🥰",
+          "Хочу держать тебя за руку всю жизнь 🤝",
+          "Ты — самое нежное, что у меня есть 💕",
+          "Ты — моя тихая гавань в бурном мире ⚓",
+          "С тобой любой путь кажется легче 🚶‍♀️",
+          "Когда ты улыбаешься, мир становится лучше 😊",
+          "Моя любовь к тебе растёт с каждым днём 🌱",
+          "Ты — моя самая большая радость и опора 💞",
+          "Я благодарен судьбе за тебя, моя любимая 💝",
+          "Твоё имя — моё любимое слово 💬",
+          "Я люблю тебя больше, чем вчера, но меньше, чем завтра 💫",
+          "Ты — мой дом, где бы мы ни были 🏡",
+          "Мне хочется обнимать тебя бесконечно 🤗",
+          "Ты — моё лучшее «навсегда» 🌹"
+        ];
+
+        this.createFloatingHearts();
+        this.setupUI();
+        this.applyTranslations();
+        this.checkExistingSave();
+        this.showScreen("mainMenu");
+
+        document.addEventListener("contextmenu", e => e.preventDefault());
+      }
+
+      t(key) {
+        const pack = I18N[this.lang] || I18N["ua"];
+        return pack[key] || I18N["ua"][key] || key;
+      }
+
+      formatTemplate(key, params) {
+        let text = this.t(key);
+        Object.keys(params || {}).forEach(k => {
+          text = text.replace(`{${k}}`, params[k]);
+        });
+        return text;
+      }
+
+      applyTranslations() {
+        document.documentElement.lang = (this.lang === "ua" ? "uk" : "ru");
+        document.title = this.t("app_title");
+
+        document.querySelectorAll("[data-i18n-key]").forEach(el => {
+          const fullKey = el.getAttribute("data-i18n-key");
+          if (!fullKey) return;
+          const baseKey = fullKey.replace(/_(ua|ru)$/, "_ua");
+          el.textContent = this.t(baseKey);
+        });
+
+        const xpText = document.getElementById("xpText");
+        if (xpText) {
+          xpText.textContent = this.t("xp_label_ua") + ": " + this.xp.toString();
+        }
+
+        const diceTitle = document.getElementById("diceTitle");
+        if (diceTitle) diceTitle.textContent = this.t("dice_title_ua");
+
+        const animSel = document.getElementById("animationSelect");
+        const soundSel = document.getElementById("soundSelect");
+        const langSel = document.getElementById("languageSelect");
+        if (animSel) animSel.value = this.animationEnabled ? "on" : "off";
+        if (soundSel) soundSel.value = this.soundEnabled ? "on" : "off";
+        if (langSel) langSel.value = this.lang;
+
+        const dBtn = document.getElementById("bonus-destroy");
+        const sBtn = document.getElementById("bonus-shuffle");
+        const eBtn = document.getElementById("bonus-explosion");
+        if (dBtn) dBtn.title = this.t("bonus_destroy_ua");
+        if (sBtn) sBtn.title = this.t("bonus_shuffle_ua");
+        if (eBtn) eBtn.title = this.t("bonus_explosion_ua");
+
+        const headerText = document.getElementById("headerText");
+        if (headerText) headerText.textContent = this.t("header_text_ua");
+      }
+
+      createFloatingHearts() {
+        const container = document.getElementById("floatingHearts");
+        const count = 18;
+        const symbols = ["❤","💗","💖","💘","💕","💞"];
+        for (let i=0;i<count;i++) {
+          const h = document.createElement("div");
+          h.className = "floating-heart";
+          h.textContent = symbols[Math.floor(Math.random()*symbols.length)];
+          h.style.left = Math.random()*100 + "vw";
+          h.style.top  = Math.random()*100 + "vh";
+          h.style.animationDelay = (Math.random()*8) + "s";
+          h.style.fontSize = (0.9+Math.random()*1.1)+"rem";
+          container.appendChild(h);
+        }
+      }
+
+      initAudio() {
+        if (this.musicInitialized) return;
+        this.musicInitialized = true;
+        try {
+          this.music = new Audio("audio/music/romantic.mp3");
+          this.music.loop = true;
+          this.music.volume = 0.4;
+        } catch(e) {
+          this.music = null;
+        }
+        try {
+          this.tapSound = new Audio("audio/sfx/tap.mp3");
+          this.tapSound.volume = 0.5;
+        } catch(e) {
+          this.tapSound = null;
+        }
+        this.updateSoundStateUI();
+      }
+
+      playTap() {
+        if (!this.soundEnabled || !this.tapSound) return;
+        try {
+          const clone = this.tapSound.cloneNode();
+          clone.volume = this.tapSound.volume;
+          clone.play().catch(()=>{});
+        } catch(e) {}
+      }
+
+      playMusicIfEnabled() {
+        if (!this.soundEnabled || !this.music) return;
+        try {
+          if (this.music.paused) {
+            this.music.play().catch(()=>{});
+          }
+        } catch(e) {}
+      }
+
+      updateSoundStateUI() {
+        const btn = document.getElementById("soundToggleBtn");
+        if (btn) {
+          btn.textContent = this.soundEnabled ? "🔊" : "🔇";
+        }
+        if (!this.musicInitialized) return;
+        if (this.soundEnabled) {
+          this.playMusicIfEnabled();
+        } else if (this.music && !this.music.paused) {
+          try { this.music.pause(); } catch(e) {}
+        }
+      }
+
+      generateLevels(count) {
+        const levels = [];
+        let target = 64;
+        let baseNumbers = [2,4,8];
+
+        for (let i=0;i<count;i++) {
+          const numbers = [...baseNumbers];
+          const newNumbers = this.generateNewNumbers(target);
+
+          levels.push({ target, numbers, newNumbers });
+
+          target *= 2;
+          if (i%3===2 && baseNumbers.length<7) {
+            baseNumbers.push(baseNumbers[baseNumbers.length-1]*2);
+          }
+        }
+        return levels;
+      }
+
+      generateNewNumbers(target) {
+        const arr = [];
+        let num = target/8;
+        for (let i=0;i<8;i++) {
+          if (num <= target) {
+            arr.unshift(num);
+            num *= 2;
+          }
+        }
+        return arr;
+      }
+
+      computeMinBaseForLevel(level) {
+        const t = level.target;
+        if (t <= 256) return 2;
+        if (t <= 1024) return 4;
+        if (t <= 4096) return 8;
+        if (t <= 16384) return 16;
+        if (t <= 65536) return 32;
+        return 64;
+      }
+
+      setupUI() {
+        const continueBtn = document.getElementById("continueBtn");
+        const newGameBtn  = document.getElementById("newGameBtn");
+
+        continueBtn.addEventListener("click", () => {
+          this.playTap();
+          this.initAudio();
+          this.playMusicIfEnabled();
+          this.resumeGame();
+        });
+        newGameBtn.addEventListener("click", () => {
+          this.playTap();
+          this.initAudio();
+          this.playMusicIfEnabled();
+          if (this.hasSave) {
+            const ok = confirm(this.t("confirm_new_game_ua"));
+            if (!ok) return;
+          }
+          localStorage.removeItem("loveNumbersSave");
+          this.hasSave = false;
+          this.startNewGame();
+        });
+
+        document.getElementById("settingsBtn").addEventListener("click", () => {
+          this.playTap();
+          this.showScreen("settings");
+        });
+        document.getElementById("aboutBtn").addEventListener("click", () => {
+          this.playTap();
+          this.showScreen("about");
+        });
+        document.getElementById("homeBtn").addEventListener("click", () => {
+          this.playTap();
+          this.showScreen("mainMenu");
+        });
+        document.getElementById("saveBtn").addEventListener("click", () => {
+          this.playTap();
+          this.saveGameState();
+          this.showLoveMessage(this.t("save_done_ua"));
+        });
+
+        document.getElementById("backFromSettingsBtn").addEventListener("click", () => {
+          this.playTap();
+          this.showScreen("mainMenu");
+        });
+        document.getElementById("backFromAboutBtn").addEventListener("click", () => {
+          this.playTap();
+          this.showScreen("mainMenu");
+        });
+
+        document.getElementById("saveSettingsBtn").addEventListener("click", () => {
+          this.playTap();
+          this.animationEnabled = document.getElementById("animationSelect").value === "on";
+          this.soundEnabled = document.getElementById("soundSelect").value === "on";
+          this.lang = document.getElementById("languageSelect").value || "ua";
+          this.applyTranslations();
+          this.updateSoundStateUI();
+          this.saveGameState();
+          this.showScreen("mainMenu");
+        });
+
+        document.getElementById("soundToggleBtn").addEventListener("click", () => {
+          this.playTap();
+          this.soundEnabled = !this.soundEnabled;
+          const soundSel = document.getElementById("soundSelect");
+          if (soundSel) soundSel.value = this.soundEnabled ? "on" : "off";
+          this.updateSoundStateUI();
+          this.saveGameState();
+        });
+
+        document.getElementById("playAgainBtn").addEventListener("click", () => {
+          this.playTap();
+          this.hideVictory();
+          this.startNewGame();
+        });
+        document.getElementById("backToMenuBtn").addEventListener("click", () => {
+          this.playTap();
+          this.hideVictory();
+          this.showScreen("mainMenu");
+        });
+
+        document.getElementById("bonus-dice").addEventListener("click", () => {
+          this.playTap();
+          this.handleDice();
+        });
+        document.getElementById("diceCloseBtn").addEventListener("click", () => {
+          this.playTap();
+          this.closeDice();
+        });
+
+        document.getElementById("bonus-destroy").addEventListener("click", () => {
+          this.playTap();
+          this.activateBonus("destroy");
+        });
+        document.getElementById("bonus-shuffle").addEventListener("click", () => {
+          this.playTap();
+          this.activateBonus("shuffle");
+        });
+        document.getElementById("bonus-explosion").addEventListener("click", () => {
+          this.playTap();
+          this.activateBonus("explosion");
+        });
+
+        const grid = document.getElementById("grid");
+        grid.addEventListener("pointerdown", e => this.handlePointerDown(e));
+        grid.addEventListener("pointermove", e => this.handlePointerMove(e));
+        grid.addEventListener("pointerup", () => this.handlePointerUp());
+        grid.addEventListener("pointercancel", () => this.handlePointerUp());
+      }
+
+      showScreen(name) {
+        document.querySelectorAll(".screen").forEach(s => s.classList.add("hidden"));
+        const screen = document.getElementById(name+"Screen");
+        if(screen) screen.classList.remove("hidden");
+      }
+
+      checkExistingSave() {
+        const raw = localStorage.getItem("loveNumbersSave");
+        const continueBtn = document.getElementById("continueBtn");
+
+        if (!raw) {
+          this.hasSave = false;
+          if (continueBtn) { continueBtn.disabled = true; continueBtn.style.opacity = "0.5"; }
+          return;
+        }
+        try {
+          const data = JSON.parse(raw);
+          if (!data || typeof data !== "object") throw new Error("bad");
+          this.restoreFromState(data);
+          this.hasSave = true;
+          if (continueBtn) { continueBtn.disabled = false; continueBtn.style.opacity = "1"; }
+        } catch (e) {
+          console.error("Bad save:", e);
+          this.hasSave = false;
+          if (continueBtn) { continueBtn.disabled = true; continueBtn.style.opacity = "0.5"; }
+        }
+      }
+
+      restoreFromState(state) {
+        this.currentLevel = Math.min(state.currentLevel ?? 0, this.MAX_LEVEL-1);
+        this.xp = state.xp ?? 0;
+        this.bonusInventory = state.bonusInventory || {destroy:0,shuffle:0,explosion:0};
+        this.animationEnabled = state.animationEnabled !== false;
+        this.lang = state.lang || "ua";
+        this.soundEnabled = state.soundEnabled !== false;
+        this.pendingTransition = state.pendingTransition || null;
+        this.diceRollsToday = state.diceRollsToday ?? 0;
+        this.lastDiceReset = state.lastDiceReset ?? null;
+
+        this.applyTranslations();
+        this.updateSoundStateUI();
+        this.checkDiceResetDaily();
+
+        const numbers = state.grid;
+        if (Array.isArray(numbers) && numbers.length === this.GRID_W) {
+          this.grid = [];
+          for (let x=0;x<this.GRID_W;x++) {
+            this.grid[x] = [];
+            for (let y=0;y<this.GRID_H;y++) {
+              const num = numbers[x]?.[y] ?? 2;
+              this.grid[x][y] = { number: num, merged:false };
+            }
+          }
+          if (this.pendingTransition && this.pendingTransition.active) {
+            this.currentLevel = Math.min(this.pendingTransition.nextLevel, this.MAX_LEVEL-1);
+            this.carryNumberPending = this.pendingTransition.carryNumber ?? null;
+            this.pendingTransition = null;
+            this.initGame(this.currentLevel);
+            this.saveGameState();
+          } else {
+            this.updateTargetInfo();
+            this.updateXPBar();
+            this.updateBonusButtons();
+            this.updateDiceButton();
+          }
+        } else {
+          this.initGame(this.currentLevel);
+          this.saveGameState();
+        }
+      }
+
+      startNewGame() {
+        this.currentLevel = 0;
+        this.xp = 0;
+        this.bonusInventory = { destroy:0, shuffle:0, explosion:0 };
+        this.pendingTransition = null;
+        this.carryNumberPending = null;
+        this.diceRollsToday = 0;
+        this.lastDiceReset = null;
+        this.initGame(0);
+        this.saveGameState();
+        this.showScreen("game");
+      }
+
+      resumeGame() {
+        const raw = localStorage.getItem("loveNumbersSave");
+        if (!raw) {
+          this.startNewGame();
+          return;
+        }
+        try {
+          const data = JSON.parse(raw);
+          if (!data || typeof data !== "object") throw new Error("bad");
+          this.restoreFromState(data);
+          this.showScreen("game");
+          this.render();
+        } catch (e) {
+          console.error("Resume fail, starting new:", e);
+          this.startNewGame();
+          this.showScreen("game");
+        }
+      }
+
+      initGame(levelIndex=0) {
+        this.currentLevel = levelIndex;
+        const level = this.levels[this.currentLevel];
+
+        this.selected = [];
+        this.chainNumbers = [];
+        this.gameState = "playing";
+        this.activeBonus = null;
+
+        this.grid = [];
+        const minBase = this.computeMinBaseForLevel(level);
+        const baseFiltered = level.numbers.filter(n=>n>=minBase);
+        const pool = baseFiltered.length ? baseFiltered : level.numbers;
+
+        for (let x=0;x<this.GRID_W;x++) {
+          this.grid[x] = [];
+          for (let y=0;y<this.GRID_H;y++) {
+            this.grid[x][y] = {
+              number: pool[Math.floor(Math.random()*pool.length)],
+              merged: false
+            };
+          }
+        }
+
+        let carryPos = null;
+        if (this.carryNumberPending != null) {
+          const val = this.carryNumberPending;
+          this.carryNumberPending = null;
+          const rx = Math.floor(Math.random()*this.GRID_W);
+          const ry = Math.floor(Math.random()*this.GRID_H);
+          this.grid[rx][ry].number = val;
+          this.grid[rx][ry].merged = false;
+          carryPos = {x:rx,y:ry};
+        }
+
+        this.updateTargetInfo();
+        this.updateXPBar();
+        this.updateBonusButtons();
+        this.updateDiceButton();
+        this.render();
+
+        if (carryPos) setTimeout(()=>this.animateCarryAppear(carryPos.x,carryPos.y), 50);
+      }
+
+      updateTargetInfo() {
+        const level = this.levels[this.currentLevel];
+        document.getElementById("targetValue").textContent = this.formatNumber(level.target);
+        document.getElementById("levelLabel").textContent = this.t("level_label_ua") + " " + (this.currentLevel+1);
+      }
+
+      render() {
+        const gridDiv = document.getElementById("grid");
+        gridDiv.innerHTML = "";
+
+        for (let y=0;y<this.GRID_H;y++) {
+          for (let x=0;x<this.GRID_W;x++) {
+            const cellData = this.grid[x][y];
+
+            let num = cellData.number;
+            if (num == null) {
+              const level = this.levels[this.currentLevel];
+              const minBase = this.computeMinBaseForLevel(level);
+              const baseFiltered = level.numbers.filter(v => v >= minBase);
+              const pool = baseFiltered.length ? baseFiltered : level.numbers;
+              num = pool[Math.floor(Math.random()*pool.length)];
+              cellData.number = num;
+            }
+
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            cell.dataset.x = x;
+            cell.dataset.y = y;
+            cell.dataset.number = num;
+
+            if (this.selected.some(s=>s.x===x && s.y===y)) cell.classList.add("selected");
+            if (cellData.merged) cell.classList.add("merged");
+
+            const inner = document.createElement("div");
+            inner.className = "cell-inner";
+            inner.textContent = this.formatNumber(num);
+            cell.appendChild(inner);
+
+            gridDiv.appendChild(cell);
+          }
+        }
+      }
+
+      animateCarryAppear(x,y) {
+        const gridDiv = document.getElementById("grid");
+        const cell = gridDiv.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+        if (!cell) return;
+        cell.classList.add("carry");
+        setTimeout(()=>cell.classList.remove("carry"), 500);
+      }
+
+      getCellFromPoint(clientX, clientY) {
+        const el = document.elementFromPoint(clientX, clientY);
+        if (!el) return null;
+        const cell = el.classList.contains("cell") ? el : el.closest(".cell");
+        if (!cell) return null;
+        return { x:parseInt(cell.dataset.x,10), y:parseInt(cell.dataset.y,10) };
+      }
+
+      handlePointerDown(e) {
+        if (this.gameState !== "playing") return;
+        const posCell = this.getCellFromPoint(e.clientX, e.clientY);
+        if (!posCell) return;
+
+        if (this.activeBonus === "destroy") { this.useDestroyBonus(posCell.x,posCell.y); return; }
+        if (this.activeBonus === "explosion") { this.useExplosionBonus(posCell.x,posCell.y); return; }
+
+        this.isDragging = true;
+        this.selected = [posCell];
+        this.chainNumbers = [this.grid[posCell.x][posCell.y].number];
+        this.updatePreviewBubble(this.getCurrentChainSum(), e);
+        this.render();
+      }
+
+      handlePointerMove(e) {
+        if (!this.isDragging || this.activeBonus) return;
+        e.preventDefault();
+
+        const posCell = this.getCellFromPoint(e.clientX,e.clientY);
+        this.updatePreviewBubble(this.getCurrentChainSum(), e);
+
+        if (!posCell) return;
+        const len = this.selected.length;
+        if (len === 0) return;
+
+        if (len >= 2) {
+          const prev = this.selected[len-2];
+          if (prev.x === posCell.x && prev.y === posCell.y) {
+            this.selected.pop(); this.chainNumbers.pop();
+            this.updatePreviewBubble(this.getCurrentChainSum(), e);
+            this.render();
+            return;
+          }
+        }
+
+        if (this.selected.some(s=>s.x===posCell.x && s.y===posCell.y)) return;
+
+        const last = this.selected[len-1];
+        if (!this.isAdjacent(last,posCell)) return;
+
+        const newNum = this.grid[posCell.x][posCell.y].number;
+        const prevNum = this.chainNumbers[this.chainNumbers.length-1];
+
+        if (newNum === prevNum || newNum === prevNum*2) {
+          this.selected.push(posCell);
+          this.chainNumbers.push(newNum);
+          this.updatePreviewBubble(this.getCurrentChainSum(), e);
+          this.render();
+        }
+      }
+
+      handlePointerUp() {
+        if (!this.isDragging) return;
+        this.isDragging = false;
+        this.hidePreviewBubble();
+
+        if (this.selected.length >= 2) {
+          this.mergeChain();
+        } else {
+          this.selected = [];
+          this.chainNumbers = [];
+          this.render();
+        }
+      }
+
+      isAdjacent(a,b) {
+        return Math.abs(a.x-b.x) <= 1 && Math.abs(a.y-b.y) <= 1;
+      }
+
+      getCurrentChainSum() {
+        return this.chainNumbers.reduce((s,v)=>s+v,0);
+      }
+
+      isPowerOfTwo(num) {
+        return num > 0 && (num & (num - 1)) === 0;
+      }
+
+      isValidResultNumber(num, level) {
+        const minBase = this.computeMinBaseForLevel(level);
+        if (!this.isPowerOfTwo(num)) return false;
+        if (num < minBase) return false;
+        const maxAllowed = level.target * 2;
+        if (num > maxAllowed) return false;
+        return true;
+      }
+
+      baseXPByLen(len) {
+        if (len <= 1) return 0;
+        if (len === 2) return 4;
+        if (len === 3) return 8;
+        if (len === 4) return 12;
+        if (len === 5) return 18;
+        return 25;
+      }
+      levelXPMult() {
+        return 1 + (this.currentLevel+1)*0.06;
+      }
+      calculateXP(len) {
+        const base = this.baseXPByLen(len);
+        return Math.max(0, Math.round(base * this.levelXPMult()));
+      }
+
+      mergeChain() {
+        const level = this.levels[this.currentLevel];
+        const sum = this.getCurrentChainSum();
+        const anchor = this.selected[this.selected.length-1];
+        const removedCells = this.selected.slice(0,-1);
+
+        if (!this.isValidResultNumber(sum, level)) {
+          this.showLoveMessage(this.t("chain_invalid_ua"));
+          this.selected = [];
+          this.chainNumbers = [];
+          this.render();
+          return;
+        }
+
+        this.grid[anchor.x][anchor.y].number = sum;
+        this.grid[anchor.x][anchor.y].merged = true;
+        this.render();
+
+        this.animatePopping(removedCells, () => {
+          this.animateGravity(removedCells, () => {
+            this.applyLocalGravity(removedCells);
+
+            const xpEarned = this.calculateXP(this.selected.length);
+            this.xp += xpEarned;
+
+            this.selected = [];
+            this.chainNumbers = [];
+
+            this.updateXPBar();
+            this.updateBonusButtons();
+            this.updateDiceButton();
+            this.render();
+            this.saveGameState();
+            this.checkWin();
+            if (this.gameState === "playing") this.showRandomLoveMessage();
+          });
+        });
+      }
+
+      animatePopping(cells, callback) {
+        if (!this.animationEnabled) { callback(); return; }
+        const gridDiv = document.getElementById("grid");
+        cells.forEach(s=>{
+          const cell = gridDiv.querySelector(`.cell[data-x="${s.x}"][data-y="${s.y}"]`);
+          if (cell) cell.classList.add("popping");
+        });
+        setTimeout(() => callback(), 270);
+      }
+
+      animateGravity(removedCells, callback) {
+        if (!this.animationEnabled) { callback(); return; }
+        const gridDiv = document.getElementById("grid");
+        const removedMap = {};
+        removedCells.forEach(c => {
+          if (!removedMap[c.x]) removedMap[c.x] = [];
+          removedMap[c.x].push(c.y);
+        });
+
+        for (let x=0;x<this.GRID_W;x++) {
+          const ys = removedMap[x] ? removedMap[x].slice().sort((a,b)=>a-b) : [];
+          if (!ys.length) continue;
+
+          for (let y=0;y<this.GRID_H;y++) {
+            const isRemoved = ys.includes(y);
+            if (isRemoved) continue;
+
+            let holesBelow = 0;
+            ys.forEach(ry => { if (ry > y) holesBelow++; });
+
+            if (holesBelow > 0) {
+              const cell = gridDiv.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+              if (cell) {
+                cell.style.transition = "transform 0.25s ease";
+                cell.style.transform = `translateY(${holesBelow*100}%)`;
+              }
+            }
+          }
+        }
+
+        setTimeout(() => {
+          const cells = gridDiv.querySelectorAll(".cell");
+          cells.forEach(c => { c.style.transition = ""; c.style.transform  = ""; });
+          callback();
+        }, 260);
+      }
+
+      applyLocalGravity(removedCells) {
+        const level = this.levels[this.currentLevel];
+        const minBase = this.computeMinBaseForLevel(level);
+        const baseFiltered = level.numbers.filter(n => n >= minBase);
+        const pool = baseFiltered.length ? baseFiltered : level.numbers;
+
+        const removedMap = {};
+        removedCells.forEach(c => {
+          if (!removedMap[c.x]) removedMap[c.x] = new Set();
+          removedMap[c.x].add(c.y);
+        });
+
+        for (let x = 0; x < this.GRID_W; x++) {
+          const survivors = [];
+          for (let y=0;y<this.GRID_H;y++) {
+            const isRemoved = removedMap[x]?.has(y);
+            if (!isRemoved) survivors.push(this.grid[x][y].number);
+          }
+
+          const totalCells = this.GRID_H;
+          const newCol = new Array(totalCells).fill(null);
+          let writeY = totalCells-1;
+
+          for (let i=survivors.length-1;i>=0;i--) {
+            if (writeY < 0) break;
+            newCol[writeY] = survivors[i];
+            writeY--;
+          }
+          while (writeY >= 0) {
+            newCol[writeY] = pool[Math.floor(Math.random()*pool.length)];
+            writeY--;
+          }
+
+          for (let y=0;y<this.GRID_H;y++) {
+            this.grid[x][y] = { number:newCol[y], merged:false };
+          }
+        }
+      }
+
+      updateXPBar() {
+        const bar = document.getElementById("xpBar");
+        const txt = document.getElementById("xpText");
+        bar.style.width = "100%";
+        txt.textContent = this.t("xp_label_ua") + ": " + this.xp.toString();
+      }
+
+      getFreeDiceRollsForLevel() {
+        const lvl = this.currentLevel + 1;
+        if (lvl <= 10) return 3;
+        if (lvl <= 25) return 4;
+        return 5;
+      }
+
+      getDiceBaseCostForLevel() {
+        return 18 + (this.currentLevel + 1) * 4;
+      }
+
+      checkDiceResetDaily() {
+        const now = new Date();
+        const today = now.getFullYear() + "-" + (now.getMonth()+1) + "-" + now.getDate();
+
+        if (!this.lastDiceReset) {
+          this.lastDiceReset = today;
+          this.diceRollsToday = 0;
+          return;
+        }
+
+        if (this.lastDiceReset !== today) {
+          this.lastDiceReset = today;
+          this.diceRollsToday = 0;
+        }
+      }
+
+      getDiceCost() {
+        this.checkDiceResetDaily();
+
+        const base = this.getDiceBaseCostForLevel();
+        const freeRolls = this.getFreeDiceRollsForLevel();
+        const used = this.diceRollsToday || 0;
+
+        if (used < freeRolls) {
+          return base;
+        }
+
+        const extraRolls = used - freeRolls + 1;
+        const step = 5;
+        return base + extraRolls * step;
+      }
+
+      updateDiceButton() {
+        const btn = document.getElementById("bonus-dice");
+        const label = document.getElementById("diceCostLabel");
+        const cost = this.getDiceCost();
+        if (label) label.textContent = cost;
+        const enough = this.xp >= cost;
+        btn.disabled = !enough;
+        btn.style.opacity = enough ? "1" : "0.55";
+        btn.title = enough ? this.t("dice_btn_ready_ua") : this.t("dice_btn_not_ready_ua");
+      }
+
+      handleDice() {
+        const cost = this.getDiceCost();
+        if (this.xp < cost) {
+          this.showLoveMessage(this.t("dice_not_enough_ua"));
+          return;
+        }
+        this.openDice();
+        this.startDiceRoll(cost);
+      }
+
+      openDice() {
+        document.getElementById("diceChoices").innerHTML = "";
+        document.getElementById("diceInfo").textContent = this.t("dice_spinning_ua");
+        document.getElementById("diceOverlay").classList.remove("hidden");
+        const roller = document.getElementById("diceRoller");
+        roller.classList.add("spin");
+      }
+      closeDice() {
+        document.getElementById("diceOverlay").classList.add("hidden");
+        const roller = document.getElementById("diceRoller");
+        roller.classList.remove("spin");
+      }
+
+      startDiceRoll(costAtMoment) {
+        setTimeout(() => {
+          const optionA = this.weightedRandomBonus();
+          const optionB = this.weightedRandomBonus();
+          const choices = document.getElementById("diceChoices");
+          const info = document.getElementById("diceInfo");
+          const roller = document.getElementById("diceRoller");
+          roller.classList.remove("spin");
+          info.textContent = this.t("dice_choose_reward_ua");
+
+          const makeBtn = (type) => {
+            const b = document.createElement("button");
+            b.className = "dice-choice";
+            b.textContent = this.bonusLabel(type);
+            b.addEventListener("click", () => {
+              this.xp -= costAtMoment;
+              if (this.xp < 0) this.xp = 0;
+
+              this.diceRollsToday = (this.diceRollsToday || 0) + 1;
+
+              this.bonusInventory[type] = (this.bonusInventory[type]||0) + 1;
+
+              this.updateXPBar();
+              this.updateBonusButtons();
+              this.updateDiceButton();
+              this.saveGameState();
+              this.showLoveMessage(this.formatTemplate("dice_got_ua", {label: this.bonusLabel(type)}));
+              this.closeDice();
+            });
+            return b;
+          };
+
+          choices.innerHTML = "";
+          choices.appendChild(makeBtn(optionA));
+          choices.appendChild(makeBtn(optionB));
+        }, 1100);
+      }
+
+      bonusLabel(type) {
+        if (type === "explosion") return this.t("bonus_explosion_ua");
+        if (type === "shuffle")   return this.t("bonus_shuffle_ua");
+        return this.t("bonus_destroy_ua");
+      }
+
+      weightedRandomBonus() {
+        const base = { destroy: 1.0, shuffle: 1.0, explosion: 0.45 };
+        const d = this.bonusInventory.destroy || 0;
+        const s = this.bonusInventory.shuffle || 0;
+        let w = { ...base };
+
+        const maxDS = Math.max(d, s, 1);
+        const minDS = Math.min(d, s);
+        const diffRatio = (maxDS - minDS) / maxDS;
+
+        if (diffRatio >= 0.30) {
+          const boost = Math.min(0.30, diffRatio);
+          if (d < s) w.destroy *= (1 + boost);
+          else if (s < d) w.shuffle *= (1 + boost);
+        }
+
+        const total = w.destroy + w.shuffle + w.explosion;
+        let r = Math.random() * total;
+        if ((r -= w.destroy) < 0)   return "destroy";
+        if ((r -= w.shuffle) < 0)   return "shuffle";
+        return "explosion";
+      }
+
+      activateBonus(type) {
+        if (this.activeBonus === type) {
+          this.activeBonus = null;
+          this.updateBonusButtons();
+          return;
+        }
+        if (this.bonusInventory[type] <= 0) {
+          this.showLoveMessage(this.t("no_bonus_ua"));
+          return;
+        }
+        if (type === "shuffle") {
+          this.bonusInventory.shuffle--;
+          this.animatedShuffleGrid();
+          this.updateBonusButtons();
+          this.saveGameState();
+          this.showLoveMessage(this.t("shuffle_done_ua"));
+          return;
+        }
+        this.activeBonus = type;
+        this.updateBonusButtons();
+        this.showLoveMessage(this.t("choose_cell_bonus_ua"));
+      }
+
+      animatedShuffleGrid() {
+        const gridDiv = document.getElementById("grid");
+        const cells = gridDiv.querySelectorAll(".cell");
+        cells.forEach(c => c.classList.add("shuffle-anim"));
+        setTimeout(() => {
+          this.shuffleGrid();
+          cells.forEach(c => c.classList.remove("shuffle-anim"));
+        }, 350);
+      }
+
+      shuffleGrid() {
+        const all = [];
+        for (let x=0;x<this.GRID_W;x++) for (let y=0;y<this.GRID_H;y++) all.push(this.grid[x][y].number);
+        for (let i=all.length-1;i>0;i--) {
+          const j=Math.floor(Math.random()*(i+1));
+          [all[i],all[j]]=[all[j],all[i]];
+        }
+        let k=0;
+        for (let x=0;x<this.GRID_W;x++) for (let y=0;y<this.GRID_H;y++) {
+          this.grid[x][y].number = all[k++]; this.grid[x][y].merged=false;
+        }
+        this.render();
+      }
+
+      useDestroyBonus(x,y) {
+        if (this.bonusInventory.destroy <= 0) {
+          this.showLoveMessage(this.t("no_bonus_ua"));
+          this.activeBonus = null; this.updateBonusButtons();
+          return;
+        }
+        this.bonusInventory.destroy--;
+
+        const removedCells = [{x,y}];
+
+        this.animatePopping(removedCells, () => {
+          this.animateGravity(removedCells, () => {
+            this.applyLocalGravity(removedCells);
+            this.activeBonus = null;
+            this.updateBonusButtons();
+            this.render();
+            this.saveGameState();
+            this.showLoveMessage(this.t("destroy_done_ua"));
+          });
+        });
+      }
+
+      useExplosionBonus(x,y) {
+        if (this.bonusInventory.explosion <= 0) {
+          this.showLoveMessage(this.t("no_bonus_ua"));
+          this.activeBonus = null; this.updateBonusButtons();
+          return;
+        }
+        this.bonusInventory.explosion--;
+
+        const removedCells = [];
+        for (let dx=-1;dx<=1;dx++) for (let dy=-1;dy<=1;dy++) {
+          const nx=x+dx, ny=y+dy;
+          if (nx>=0 && nx<this.GRID_W && ny>=0 && ny<this.GRID_H) {
+            removedCells.push({x:nx,y:ny});
+          }
+        }
+
+        this.animatePopping(removedCells, () => {
+          this.animateGravity(removedCells, () => {
+            this.applyLocalGravity(removedCells);
+            this.activeBonus = null;
+            this.updateBonusButtons();
+            this.render();
+            this.saveGameState();
+            this.showLoveMessage(this.t("explosion_done_ua"));
+          });
+        });
+      }
+
+      updateBonusButtons() {
+        const dBtn = document.getElementById("bonus-destroy");
+        const sBtn = document.getElementById("bonus-shuffle");
+        const eBtn = document.getElementById("bonus-explosion");
+        const cD = document.getElementById("count-destroy");
+        const cS = document.getElementById("count-shuffle");
+        const cE = document.getElementById("count-explosion");
+
+        if (cD) cD.textContent = this.bonusInventory.destroy;
+        if (cS) cS.textContent = this.bonusInventory.shuffle;
+        if (cE) cE.textContent = this.bonusInventory.explosion;
+
+        dBtn.disabled = (this.bonusInventory.destroy <= 0 && this.activeBonus!=="destroy");
+        sBtn.disabled = (this.bonusInventory.shuffle <= 0 && this.activeBonus!=="shuffle");
+        eBtn.disabled = (this.bonusInventory.explosion <= 0 && this.activeBonus!=="explosion");
+
+        dBtn.classList.toggle("active", this.activeBonus==="destroy");
+        sBtn.classList.toggle("active", this.activeBonus==="shuffle");
+        eBtn.classList.toggle("active", this.activeBonus==="explosion");
+      }
+
+      getMaxNumberOnGrid() {
+        let max = 0;
+        for (let x=0;x<this.GRID_W;x++) for (let y=0;y<this.GRID_H;y++) {
+          const v = this.grid[x][y].number;
+          if (v!=null && v>max) max=v;
+        }
+        return max;
+      }
+
+      checkWin() {
+        const level = this.levels[this.currentLevel];
+        for (let x=0;x<this.GRID_W;x++) for (let y=0;y<this.GRID_H;y++) {
+          if (this.grid[x][y].number === level.target) {
+            this.gameState="win";
+            this.handleLevelComplete();
+            return;
+          }
+        }
+      }
+
+      handleLevelComplete() {
+        const oldXp = this.xp;
+        const maxNumber = this.getMaxNumberOnGrid();
+
+        this.xp = oldXp;
+        this.updateXPBar();
+        this.updateBonusButtons();
+        this.updateDiceButton();
+
+        const prevLevelIndex = this.currentLevel;
+        const prevLevelNumber = prevLevelIndex+1;
+        let nextLevelIndex = Math.min(prevLevelIndex+1, this.MAX_LEVEL-1);
+        const nextLevelNumber = nextLevelIndex+1;
+
+        this.pendingTransition = { active: true, nextLevel: nextLevelIndex, carryNumber: maxNumber };
+        this.saveGameState();
+
+        const overlay = document.getElementById("levelOverlay");
+        const title = document.getElementById("levelOverlayTitle");
+        const text  = document.getElementById("levelOverlayText");
+        const stats = document.getElementById("levelStats");
+        const countdown = document.getElementById("levelCountdown");
+
+        title.textContent = this.formatTemplate("level_reached_title_ua", {level: prevLevelNumber});
+        text.textContent = this.t("level_reached_text_ua");
+        let statsHtml = "";
+        statsHtml += this.formatTemplate("level_stats_points_ua", {points: this.xp}) + "<br/>";
+        statsHtml += this.formatTemplate("level_stats_carry_ua", {value: this.formatNumber(maxNumber)});
+        stats.innerHTML = statsHtml;
+
+        let seconds = 3;
+        countdown.textContent = this.formatTemplate("level_countdown_ua", {level: nextLevelNumber, seconds});
+        overlay.classList.remove("hidden");
+
+        const timer = setInterval(()=>{
+          seconds--;
+          if (seconds <= 0) {
+            clearInterval(timer);
+            overlay.classList.add("hidden");
+            this.completeLevelTransition();
+          } else {
+            countdown.textContent = this.formatTemplate("level_countdown_ua", {level: nextLevelNumber, seconds});
+          }
+        },1000);
+      }
+
+      completeLevelTransition() {
+        if (!this.pendingTransition || !this.pendingTransition.active) return;
+        const nextLevelIndex = this.pendingTransition.nextLevel;
+        const carry = this.pendingTransition.carryNumber ?? null;
+        this.pendingTransition = null;
+
+        if (nextLevelIndex >= this.MAX_LEVEL-1) {
+          this.currentLevel = this.MAX_LEVEL-1;
+          this.carryNumberPending = carry;
+          this.initGame(this.currentLevel);
+          this.saveGameState();
+          this.showVictory();
+        } else {
+          this.currentLevel = nextLevelIndex;
+          this.carryNumberPending = carry;
+          this.initGame(this.currentLevel);
+          this.saveGameState();
+          this.showRandomLoveMessage();
+        }
+      }
+
+      showVictory() { document.getElementById("victoryOverlay").classList.remove("hidden"); }
+      hideVictory() { document.getElementById("victoryOverlay").classList.add("hidden"); }
+
+      showRandomLoveMessage() {
+        const keys = RANDOM_MESSAGES_KEYS;
+        const key = keys[Math.floor(Math.random()*keys.length)];
+        this.showLoveMessage(this.t(key));
+      }
+
+      showLoveMessage(text) {
+        const container = document.querySelector("#gameScreen .grid-container");
+        if (!container) return;
+
+        const old = container.querySelector(".love-bubble");
+        if (old) old.remove();
+
+        const bubble = document.createElement("div");
+        bubble.className = "love-bubble";
+        const left = 15 + Math.random()*70;
+        const top  = 25 + Math.random()*50;
+        bubble.style.left = left + "%";
+        bubble.style.top  = top + "%";
+
+        const pool = this.lang === "ua" ? this.loveMessagesUa : this.loveMessagesRu;
+        const finalText = text || pool[Math.floor(Math.random()*pool.length)];
+
+        bubble.textContent = finalText;
+        container.appendChild(bubble);
+        setTimeout(()=>bubble.remove(), 2600);
+      }
+
+      updatePreviewBubble(sum, e) {
+        const bubble = document.getElementById("previewBubble");
+        if (!bubble) return;
+        bubble.textContent = this.formatNumber(sum);
+
+        if (e && e.clientX != null) {
+          const containerRect = document.querySelector(".grid-container").getBoundingClientRect();
+          const gridRect = document.getElementById("grid").getBoundingClientRect();
+          const x = e.clientX - containerRect.left;
+          const y = e.clientY - containerRect.top;
+          const cellH = gridRect.height / this.GRID_H;
+
+          bubble.style.left = x + "px";
+          bubble.style.top  = (y - cellH) + "px";
+        }
+        bubble.style.opacity = sum>0 ? "1" : "0";
+      }
+
+      hidePreviewBubble() {
+        const bubble = document.getElementById("previewBubble");
+        if (!bubble) return;
+        bubble.style.opacity = "0";
+      }
+
+      formatNumber(num) {
+        if (num >= 1_000_000) return (num/1_000_000).toFixed(1).replace(".0","")+"M";
+        if (num >= 10_000)    return (num/1_000).toFixed(0)+"K";
+        if (num >= 1_000)     return (num/1_000).toFixed(1).replace(".0","")+"K";
+        return num;
+      }
+
+      saveGameState() {
+        try {
+          const gridNumbers = [];
+          for (let x=0;x<this.GRID_W;x++) {
+            gridNumbers[x] = [];
+            for (let y=0;y<this.GRID_H;y++) {
+              gridNumbers[x][y] = this.grid[x][y].number;
+            }
+          }
+          const state = {
+            version: 5,
+            currentLevel: this.currentLevel,
+            xp: this.xp,
+            grid: gridNumbers,
+            bonusInventory: this.bonusInventory,
+            animationEnabled: this.animationEnabled,
+            lang: this.lang,
+            soundEnabled: this.soundEnabled,
+            pendingTransition: this.pendingTransition,
+            diceRollsToday: this.diceRollsToday,
+            lastDiceReset: this.lastDiceReset
+          };
+          localStorage.setItem("loveNumbersSave", JSON.stringify(state));
+          this.hasSave = true;
+
+          const continueBtn = document.getElementById("continueBtn");
+          if (continueBtn) { continueBtn.disabled = false; continueBtn.style.opacity = "1"; }
+        } catch (e) { console.error("Save error:", e); }
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      new LoveNumbersGame();
+    });
+  </script>
+</body>
+</html>
