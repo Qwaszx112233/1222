@@ -1,0 +1,2550 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head> 
+ <meta charset="UTF-8" />
+ <meta name="viewport"
+    content="width=device-width, initial-scale=1.0,
+user-scalable=no" />
+ <title>Lost Number — числова головоломка</title>
+ <link rel="icon" type="image/png" sizes="128x128" href="assets/icons/icon_128.png">
+ <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon_192.png">
+ <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon_192.png">
+
+<style>
+
+/* ============================= */
+/*          ТЕМЫ И ПАЛИТРА       */
+/* ============================= */
+
+/* Светлая тема */
+:root {
+  /* Базовые цвета темы */
+  --bg-main: linear-gradient(135deg, #fff7fb 0%, #ffeef5 50%, #ffe4f0 100%);
+  --bg: #f7f7f9;
+  --text: #222;
+  --text-soft: #555;
+
+  /* Игровые акценты */
+  --primary-color: #e91e63;
+  --secondary-color: #ff4081;
+  --accent-color: #f8bbd9;
+  --white: #ffffff;
+
+  /* Тени и объём */
+  --shadow: 0 6px 16px rgba(233, 30, 99, 0.18);
+
+  /* Цвет по умолчанию для клетки (если нет data-number) */
+  --cell-color: #ffeef2;
+
+  /* Цвета чисел (насыщенные, но аккуратные) */
+  --cell-2:   #ffe3b8;  /* тёплый жёлтый */
+  --cell-4:   #ffc98c;  /* янтарь */
+  --cell-8:   #ffd48a;  /* мягкий мед */
+  --cell-16:  #ffb878;  /* абрикос */
+  --cell-32:  #ff9a80;  /* коралл */
+  --cell-64:  #ff7d8b;  /* тёплый розово-красный */
+  --cell-128: #ff86c0;  /* яркая малина */
+  --cell-256: #e782ff;  /* фиолетовый акцент */
+  --cell-512: #b684ff;  /* лиловый */
+  --cell-1024:#7e8bff;  /* насыщенный синий */
+  --cell-2048:#63c4ff;  /* голубой */
+  --cell-4096:#63e6c8;  /* бирюза */
+  --cell-8192:#73e57d;  /* зелёный */
+
+  /* Свечение для линии цепочки */
+  --line-glow: rgba(255,255,255,0.55);
+}
+
+/* Тёмная тема – матовый фон + приглушённые, но читаемые плитки */
+body.dark-theme {
+  --bg-main: radial-gradient(circle at top, #27273b 0%, #11111b 45%, #030307 100%);
+  --bg: #101018;
+  --text: #f4f4f4;
+  --text-soft: #ccccdd;
+
+  --primary-color: #ff4f8d;
+  --secondary-color: #ff79b0;
+  --accent-color: #ff9fc5;
+  --white: #1b1b2a;
+
+  --shadow: 0 12px 28px rgba(0,0,0,0.65);
+
+  --cell-color: #252538;
+
+  --cell-2:   #544a2b;
+  --cell-4:   #71502a;
+  --cell-8:   #80452f;
+  --cell-16:  #7a3950;
+  --cell-32:  #6c366f;
+  --cell-64:  #553a7a;
+  --cell-128: #3e467e;
+  --cell-256: #2f567f;
+  --cell-512: #275c73;
+  --cell-1024:#245f5e;
+  --cell-2048:#2d6446;
+  --cell-4096:#336b34;
+  --cell-8192:#4c6b2f;
+
+  --line-glow: rgba(255,255,255,0.15);
+}
+
+/* ============================= */
+/*       ОБНУЛЕНИЕ / БАЗА        */
+/* ============================= */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg-main);
+  min-height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  touch-action: manipulation;
+  color: var(--text);
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+/* ============================= */
+/*      КНОПКА ПЕРЕКЛЮЧЕНИЯ ТЕМЫ */
+/* ============================= */
+
+#themeToggle {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  z-index: 50;
+}
+
+/* ============================= */
+/*          ЭКРАНЫ / СЦЕНЫ       */
+/* ============================= */
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.screen.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+}
+
+/* Плавающие сердечки на фоне */
+.floating-hearts {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+.floating-heart {
+  position: absolute;
+  font-size: 1rem;
+  opacity: 0.12;
+  animation: floatAround 14s linear infinite;
+}
+@keyframes floatAround {
+  0%   { transform: translate(0,0) rotate(0deg);   }
+  25%  { transform: translate(60px,80px) rotate(90deg); }
+  50%  { transform: translate(30px,150px) rotate(180deg);}
+  75%  { transform: translate(-50px,120px) rotate(270deg);}
+  100% { transform: translate(0,0) rotate(360deg); }
+}
+
+/* Главное меню */
+.main-menu { text-align: center; }
+.game-logo { margin-bottom: 8px; }
+.game-logo span {
+  font-weight: 900;
+  font-size: clamp(1.4rem, 5vw, 1.8rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.game-title {
+  font-size: clamp(2rem, 8vw, 2.6rem);
+  font-weight: 900;
+  color: var(--primary-color);
+  margin-bottom: 18px;
+  text-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  animation: heartbeat 2.4s ease-in-out infinite;
+}
+@keyframes heartbeat {
+  0%,100% { transform: scale(1); }
+  15%     { transform: scale(1.07); }
+  30%     { transform: scale(0.98); }
+  45%     { transform: scale(1.05); }
+  60%     { transform: scale(1); }
+}
+.subtitle {
+  max-width: 320px;
+  font-size: 0.95rem;
+  margin-bottom: 22px;
+  line-height: 1.4;
+  color: var(--text-soft);
+}
+.menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 280px;
+}
+.menu-btn {
+  padding: 14px 18px;
+  border-radius: 16px;
+  border: none;
+  background: linear-gradient(45deg,var(--primary-color),var(--secondary-color));
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+.menu-btn.secondary {
+  background:#fff;
+  color:var(--primary-color);
+  border:2px solid var(--accent-color);
+}
+.menu-btn:active {
+  transform: scale(0.96);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+}
+.menu-features {
+  margin-top:20px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  max-width:280px;
+}
+.feature-item {
+  padding:10px 6px;
+  border-radius:12px;
+  background:#fff;
+  font-size:0.8rem;
+  font-weight:700;
+  box-shadow:var(--shadow);
+}
+
+/* ============================= */
+/*         ЭКРАН ИГРЫ            */
+/* ============================= */
+
+.game-screen {
+  justify-content: space-between;
+  padding: 8px 10px 10px;
+  align-items: center;
+}
+
+/* ВЕРХНЯЯ ПАНЕЛЬ XP */
+
+.xp-wrap {
+  width: 100%;
+  margin: 4px 0 4px;
+}
+.xp-bar {
+  position:relative;
+  height:16px;
+  border-radius:10px;
+  border:2px solid var(--accent-color);
+  background:rgba(255,255,255,0.8);
+  overflow:hidden;
+  padding:0 6px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  box-shadow: var(--shadow);
+}
+.xp-inner {
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:0%;
+  background:linear-gradient(45deg,var(--primary-color),var(--secondary-color));
+  opacity:0.22;
+  transition:width 0.35s ease;
+}
+.xp-text {
+  position:relative;
+  z-index:1;
+  width:100%;
+  text-align:center;
+  font-size:0.75rem;
+  font-weight:700;
+  color:var(--text);
+  pointer-events:none;
+}
+
+/* КОМПАКТНЫЙ ТОП-РЯД */
+
+.top-ui-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 10px;
+  margin-top: 4px;
+}
+
+/* Мини-бонусы слева / куб справа */
+.bonuses-left,
+.dice-right {
+  display: flex;
+  gap: 4px;
+}
+
+/* Мини-кнопки бонусов */
+.bonus-btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 4px 4px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  border: 2px solid var(--accent-color);
+  background: rgba(255,255,255,0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+}
+.bonus-count {
+  margin-left: 3px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Цель+уровень в центре */
+.centered-goal {
+  font-weight: 900;
+  font-size: 0.9rem;
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.07);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.goal-level-label { font-size: 0.9rem; }
+.goal-icon {
+  font-size: 1rem;
+  transform: translateY(1px);
+}
+
+/* Подпись стоимости кубика */
+.dice-btn-label {
+  font-size: 0.65rem;
+  margin-left: 3px;
+}
+
+/* ============================= */
+/*         ИГРОВОЕ ПОЛЕ          */
+/* ============================= */
+
+.game-content {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+  min-height: 0;
+}
+
+.grid-container {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Линия соединения */
+#chainCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.grid {
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  grid-template-rows:repeat(8,1fr);
+  gap:2px;
+  width:100%;
+  max-width:420px;
+  height:100%;
+  max-height:100%;
+  padding:6px;
+  border-radius:14px;
+  background:rgba(255,255,255,0.96);
+  box-shadow:var(--shadow);
+  touch-action:none;
+  user-select:none;
+  position:relative;
+  overflow:hidden;
+}
+
+/* Псевдо-3D клетки */
+.cell {
+  position:relative;
+  border-radius:10px;
+  background: var(--cell-color);
+  box-shadow:
+    4px 4px 8px rgba(0,0,0,0.15),
+    -3px -3px 7px rgba(255,255,255,0.6);
+  overflow:hidden;
+  border:1px solid transparent;
+  cursor:pointer;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    border-color 0.12s ease,
+    opacity 0.12s ease,
+    background 0.12s ease;
+}
+.cell::before { content:""; display:block; padding-top:100%; }
+
+.cell-inner {
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:clamp(0.8rem,2.4vw,1rem);
+  font-weight:800;
+  color:var(--text);
+  pointer-events:none;
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(255,255,255,0.55),
+    rgba(255,255,255,0) 60%
+  );
+  transition:
+    transform 0.12s ease,
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+/* Цвета клеток по числам (поддерживает две темы через var(--cell-…)) */
+.cell[data-number="2"]    { background:var(--cell-2); }
+.cell[data-number="4"]    { background:var(--cell-4); }
+.cell[data-number="8"]    { background:var(--cell-8); }
+.cell[data-number="16"]   { background:var(--cell-16); }
+.cell[data-number="32"]   { background:var(--cell-32); }
+.cell[data-number="64"]   { background:var(--cell-64); }
+.cell[data-number="128"]  { background:var(--cell-128); }
+.cell[data-number="256"]  { background:var(--cell-256); }
+.cell[data-number="512"]  { background:var(--cell-512); }
+.cell[data-number="1024"] { background:var(--cell-1024); }
+.cell[data-number="2048"] { background:var(--cell-2048); }
+.cell[data-number="4096"] { background:var(--cell-4096); }
+.cell[data-number="8192"] { background:var(--cell-8192); }
+
+/* Выбранная цепочка */
+.cell.selected {
+  transform: translateY(-3px) scale(0.97);
+  border-color: var(--secondary-color);
+  box-shadow:
+    0 0 8px rgba(255,64,129,0.6),
+    0 0 14px rgba(255,64,129,0.3);
+}
+.cell.selected .cell-inner {
+  background: radial-gradient(
+    circle at 50% 40%,
+    rgba(255,255,255,0.85),
+    rgba(255,255,255,0.12) 70%
+  );
+  color:#fff;
+  border-radius:8px;
+}
+
+/* Анимации клетки */
+.cell.merged .cell-inner { animation:pop 0.22s ease; }
+.cell.popping { animation:bubbleOut 0.27s ease forwards; }
+.cell.carry .cell-inner { animation:carryIn 0.45s ease-out; }
+
+@keyframes pop {
+  0% { transform:scale(1.2); opacity:0.7; }
+  100%{ transform:scale(1);   opacity:1;   }
+}
+@keyframes bubbleOut {
+  0% { transform:scale(1);   opacity:1; }
+  100%{ transform:scale(0);   opacity:0;}
+}
+@keyframes carryIn {
+  0% { transform:scale(0.3); opacity:0; }
+  60%{ transform:scale(1.1); opacity:1; }
+  100%{transform:scale(1);   opacity:1; }
+}
+
+/* Shuffle-анимация */
+@keyframes shuffleWiggle {
+  0%   { transform:translate(0,0); }
+  20%  { transform:translate(-3px,2px); }
+  40%  { transform:translate(3px,-2px); }
+  60%  { transform:translate(-2px,-1px); }
+  80%  { transform:translate(2px,2px); }
+  100% { transform:translate(0,0); }
+}
+.cell.shuffle-anim .cell-inner {
+  animation: shuffleWiggle 0.35s ease;
+}
+
+/* ============================= */
+/*      ЛЮБОВНЫЕ ПУЗЫРИ, ПРЕВЬЮ */
+/* ============================= */
+
+.love-bubble {
+  position:absolute;
+  max-width:80%;
+  padding:8px 12px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.96);
+  border:2px solid var(--accent-color);
+  box-shadow:var(--shadow);
+  font-size:0.8rem;
+  font-weight:700;
+  text-align:center;
+  animation:loveFloat 2.4s ease-out forwards;
+  pointer-events:none;
+  z-index:10;
+}
+@keyframes loveFloat {
+  0% { opacity:0; transform:translateY(10px) scale(0.9); }
+  20% { opacity:1; transform:translateY(0) scale(1); }
+  80% { opacity:1; transform:translateY(-8px) scale(1); }
+  100% { opacity:0; transform:translateY(-18px) scale(0.97); }
+}
+
+/* Плавающее окно суммы */
+.preview-bubble {
+  position: absolute;
+  padding: 6px 12px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #333;
+  background: #ffffff;
+  border-radius: 14px;
+  pointer-events: none;
+  white-space: nowrap;
+  transform: translate(-50%, -120%);
+  transition: border 0.18s ease, box-shadow 0.18s ease, opacity 0.1s ease;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+  opacity: 0;
+  z-index: 9999;
+}
+.preview-bubble.normal {
+  border: 2px solid rgba(120,120,120,0.4);
+  box-shadow: 0 0 12px rgba(120,120,120,0.25);
+}
+.preview-bubble.power2 {
+  border: 2px solid rgba(0, 200, 90, 0.85);
+  box-shadow: 0 0 22px rgba(0, 200, 90, 0.55);
+}
+
+/* ============================= */
+/*   НИЖНЯЯ ПАНЕЛЬ КНОПОК        */
+/* ============================= */
+
+.bottom-ui-row {
+  width:100%;
+  display:flex;
+  justify-content:center;
+  gap:14px;
+  padding:10px 0 4px;
+}
+.bottom-ui-row button {
+  width:46px;
+  height:46px;
+  border-radius:12px;
+  font-size:1.4rem;
+  box-shadow:var(--shadow);
+  border:none;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+
+/* ============================= */
+/* ОВЕРЛЕИ: победа, уровень, кубик */
+/* ============================= */
+
+.victory-overlay,
+.level-overlay,
+.dice-overlay {
+  position:fixed; inset:0;
+  background:rgba(255,245,247,0.96);
+  display:flex; align-items:center; justify-content:center;
+  z-index:20;
+}
+body.dark-theme .victory-overlay,
+body.dark-theme .level-overlay,
+body.dark-theme .dice-overlay {
+  background:rgba(4,4,10,0.92);
+}
+.victory-overlay.hidden,
+.level-overlay.hidden,
+.dice-overlay.hidden {
+  display:none;
+}
+.victory-content,
+.level-content,
+.dice-content {
+  background:#fff;
+  border-radius:20px;
+  padding:22px 18px;
+  box-shadow:0 18px 40px rgba(233,30,99,0.35);
+  text-align:center;
+  max-width:92%;
+}
+body.dark-theme .victory-content,
+body.dark-theme .level-content,
+body.dark-theme .dice-content {
+  background:#151521;
+}
+.level-title,
+.victory-title {
+  font-size:1.5rem;
+  color:var(--primary-color);
+  margin-bottom:8px;
+  font-weight:900;
+}
+.level-text,
+.victory-text {
+  font-size:0.95rem;
+  margin-bottom:12px;
+}
+.level-stats {
+  font-size:0.85rem;
+  text-align:left;
+  margin:0 auto 10px;
+  max-width:260px;
+  line-height:1.4;
+}
+.level-countdown { font-weight:700; margin-top:4px; }
+
+.dice-title {
+  font-size:1.3rem;
+  font-weight:900;
+  color:var(--primary-color);
+  margin-bottom:8px;
+}
+.dice-roller {
+  width:80px; height:80px;
+  margin:8px auto 12px;
+  border-radius:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:2rem;
+  background:linear-gradient(45deg,var(--primary-color),var(--secondary-color));
+  color:#fff;
+  box-shadow:var(--shadow);
+  animation: none;
+}
+.dice-roller.spin { animation: spin 1s ease-in-out infinite; }
+@keyframes spin {
+  0% { transform:rotate(0deg) scale(1); }
+  50%{ transform:rotate(180deg) scale(1.08); }
+  100%{transform:rotate(360deg) scale(1); }
+}
+.dice-choices { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+.dice-choice {
+  min-width:140px; padding:10px 12px;
+  border-radius:12px;
+  border:2px solid var(--accent-color);
+  background:#fff;
+  box-shadow:var(--shadow);
+  cursor:pointer;
+  font-weight:800;
+}
+.dice-close { margin-top:10px; }
+
+/* ============================= */
+/*     НАСТРОЙКИ                 */
+/* ============================= */
+
+.settings-screen {
+  padding:20px 18px; text-align:center;
+}
+.settings-title {
+  font-size:1.6rem;
+  margin-bottom:16px;
+  color:var(--primary-color);
+  font-weight:800;
+}
+.settings-options {
+  max-width:320px;
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.setting-item {
+  background:#fff;
+  border-radius:12px;
+  padding:10px 12px;
+  box-shadow:var(--shadow);
+  text-align:left;
+}
+.setting-label {
+  font-weight:700;
+  font-size:0.9rem;
+  margin-bottom:4px;
+}
+.setting-control {
+  width:100%;
+  padding:6px 8px;
+  border-radius:8px;
+  border:2px solid var(--accent-color);
+  font-size:0.9rem;
+  background:#fff;
+}
+.back-btn-menu { margin-top:16px; }
+
+/* ============================= */
+/*        РЕСПОНСИВ              */
+/* ============================= */
+
+@media (max-height:620px){
+  .game-screen { padding-top:6px; }
+  .grid { padding:4px; }
+}
+@media (max-width:340px){
+  .menu-buttons { max-width:250px; }
+  .dice-choice { min-width:120px; }
+}
+
+/* ============================= */
+/*        СПЛЭШ-ЭКРАН            */
+/* ============================= */
+
+#splash {
+  position: fixed;
+  inset: 0;
+  background-color: #fdeee8;
+  background-image: url("assets/splash/splash_1080x1920.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  z-index: 9999;
+}
+body.loaded #splash {
+  opacity: 0;
+  pointer-events: none;
+}
+</style>
+</head>
+
+<body>
+
+<div id="splash"></div>
+
+<div class="floating-hearts" id="floatingHearts"></div>
+
+<div class="victory-overlay hidden" id="victoryOverlay">
+  <div class="victory-content">
+    <div class="victory-title" data-i18n="victory_title">🎉 Вітаємо! 🎉</div>
+    <div class="victory-text" data-i18n="victory_text">
+      Ви дійшли до фінального рівня цієї версії гри. Але завжди можна почати нову спробу 🙂
+    </div>
+    <div class="menu-buttons" style="margin-top:8px;">
+      <button class="menu-btn" id="playAgainBtn" data-i18n="btn_play_again">🔄 Почати знову</button>
+      <button class="menu-btn secondary" id="backToMenuBtn" data-i18n="btn_back_to_menu">🏠 Головне меню</button>
+    </div>
+  </div>
+</div>
+
+<div class="level-overlay hidden" id="levelOverlay">
+  <div class="level-content">
+    <div class="level-title" id="levelOverlayTitle"></div>
+    <div class="level-text" id="levelOverlayText"></div>
+    <div class="level-stats" id="levelStats"></div>
+    <div class="level-countdown" id="levelCountdown"></div>
+  </div>
+</div>
+
+<div class="dice-overlay hidden" id="diceOverlay">
+  <div class="dice-content">
+    <div class="dice-title" id="diceTitle" data-i18n="dice_title">Кубик бонусів 🎲</div>
+    <div class="dice-roller" id="diceRoller">🎲</div>
+    <div class="dice-info" id="diceInfo"></div>
+    <div class="dice-choices" id="diceChoices"></div>
+  </div>
+</div>
+
+<!-- ГЛАВНОЕ МЕНЮ -->
+<div class="screen main-menu" id="mainMenuScreen">
+    <div class="game-logo">
+      <span>Lost Number</span>
+    </div>
+    <div class="game-title" data-i18n="main_title">Числова головоломка</div>
+    <div class="subtitle" data-i18n="main_subtitle">
+      Спокійна головоломка з числами. Грайте у своєму темпі, без поспіху.
+    </div>
+    <div class="menu-buttons">
+      <button class="menu-btn" id="continueBtn" data-i18n="btn_continue">▶ Продовжити</button>
+      <button class="menu-btn secondary" id="newGameBtn" data-i18n="btn_new_game">🎮 Нова гра</button>
+      <button class="menu-btn secondary" id="settingsBtn" data-i18n="btn_settings">⚙️ Налаштування</button>
+      <button class="menu-btn secondary" id="aboutBtn" data-i18n="btn_about">ℹ️ Про гру</button>
+      <button class="menu-btn secondary" id="exitBtn">🚪 Вихід</button>
+      <button id="themeToggle">Тема</button>
+    </div>
+</div>
+
+<!-- ИГРОВОЙ ЭКРАН -->
+<div class="screen game-screen hidden" id="gameScreen">
+
+  <!-- скрытый headerText, чтобы перевод не ругался -->
+  <div id="headerText" style="display:none;"></div>
+
+  <!-- XP-БАР САМОЙ ВЕРХУ -->
+  <div class="xp-wrap">
+    <div class="xp-bar">
+      <div class="xp-inner" id="xpBar"></div>
+      <div class="xp-text" id="xpText">Очки: 0</div>
+    </div>
+  </div>
+
+  <!-- ВЕРХНИЙ РЯД: БОНУСЫ · ЦЕЛЬ/УРОВЕНЬ · КУБИК -->
+  <div class="top-ui-row">
+    <div class="bonuses-left">
+      <button class="bonus-btn" id="bonus-explosion" title="Вибух 3×3">
+        💥 <span class="bonus-count" id="count-explosion">0</span>
+      </button>
+      <button class="bonus-btn" id="bonus-shuffle" title="Перемішати">
+        🔄 <span class="bonus-count" id="count-shuffle">0</span>
+      </button>
+      <button class="bonus-btn" id="bonus-destroy" title="Розбити клітинку">
+        🔨 <span class="bonus-count" id="count-destroy">0</span>
+      </button>
+    </div>
+
+    <div class="goal-box centered-goal">
+      <span class="goal-level-label">📘№1</span>
+      <span class="goal-separator">•</span>
+      <span class="goal-icon">🎯</span>
+      <span id="targetValue">64</span>
+    </div>
+
+    <div class="dice-right">
+      <button class="bonus-btn" id="bonus-dice" title="Кубик бонусів">
+        🎲 <span class="dice-btn-label">(<span id="diceCostLabel">—</span>)</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ИГРОВОЕ ПОЛЕ -->
+<div class="game-content">
+  <div class="grid-container">
+    <canvas id="chainCanvas"></canvas>
+    <div class="grid" id="grid"></div>
+    <div class="preview-bubble normal" id="previewBubble">0</div>
+  </div>
+</div>
+
+  <!-- НИЖНЯЯ ПАНЕЛЬ -->
+  <div class="bottom-ui-row">
+    <button class="home-btn" id="homeBtn">🏠</button>
+    <button class="sound-btn" id="soundToggleBtn">🔊</button>
+    <button class="save-btn" id="saveBtn">💾</button>
+  </div>
+</div>
+
+<!-- НАСТРОЙКИ -->
+<div class="screen settings-screen hidden" id="settingsScreen">
+  <div class="settings-title" data-i18n="settings_title">Налаштування ⚙️</div>
+  <div class="settings-options">
+    <div class="setting-item">
+      <span class="setting-label" data-i18n="settings_animations_label">Анімації:</span>
+      <select class="setting-control" id="animationSelect">
+        <option value="on" selected data-i18n="settings_animations_on">Увімкнені</option>
+        <option value="off" data-i18n="settings_animations_off">Вимкнені</option>
+      </select>
+    </div>
+    <div class="setting-item">
+      <span class="setting-label" data-i18n="settings_sound_label">Звук:</span>
+      <select class="setting-control" id="soundSelect">
+        <option value="on" selected data-i18n="settings_sound_on">Увімкнений</option>
+        <option value="off" data-i18n="settings_sound_off">Вимкнений</option>
+      </select>
+    </div>
+    <div class="setting-item">
+      <span class="setting-label" data-i18n="settings_language_label">Мова інтерфейсу:</span>
+      <select class="setting-control" id="languageSelect">
+        <option value="ua" data-i18n="settings_language_ua">Українська</option>
+        <option value="ru" data-i18n="settings_language_ru">Русский</option>
+        <option value="en" data-i18n="settings_language_en">English</option>
+      </select>
+    </div>
+  </div>
+  <div class="menu-buttons back-btn-menu">
+    <button class="menu-btn" id="saveSettingsBtn" data-i18n="btn_save_settings">💾 Зберегти</button>
+    <button class="menu-btn secondary" id="backFromSettingsBtn" data-i18n="btn_back">← Назад</button>
+  </div>
+</div>
+
+<!-- ОБ ИГРЕ -->
+<div class="screen settings-screen hidden" id="aboutScreen">
+  <div class="settings-title" data-i18n="about_title">Про гру ℹ️</div>
+  <div class="settings-options">
+    <div class="setting-item" style="text-align:center;">
+      <p style="margin-bottom:10px;font-weight:700;" data-i18n="about_p1">
+        Lost Number — це спокійна логічна гра з числами.
+      </p>
+      <p style="font-size:0.9rem;line-height:1.4;" data-i18n="about_p2">
+        Об'єднуйте однакові та зростаючі числа дотиком, отримуйте більші значення та рухайтеся з рівня на рівень.
+      </p>
+      <p style="margin-top:10px;font-size:0.9rem;line-height:1.4;" data-i18n="about_p3">
+        Грайте так, як зручно саме вам.
+      </p>
+    </div>
+  </div>
+  <div class="menu-buttons back-btn-menu">
+    <button class="menu-btn secondary" id="backFromAboutBtn" data-i18n="btn_back">← Назад</button>
+  </div>
+</div>
+
+<script>
+  // === I18N ===
+  const I18N = {
+    ua: {
+      app_title: "Lost Number — числова головоломка",
+      main_title: "Числова головоломка",
+      main_subtitle: "Спокійна головоломка з числами. Грайте у своєму темпі, без таймерів і поспіху.",
+      btn_continue: "▶ Продовжити",
+      btn_new_game: "🎮 Нова гра",
+      btn_settings: "⚙️ Налаштування",
+      btn_about: "ℹ️ Про гру",
+      btn_play_again: "🔄 Почати знову",
+      btn_back_to_menu: "🏠 Головне меню",
+      btn_save_settings: "💾 Зберегти",
+      btn_back: "← Назад",
+      btn_close_dice: "Закрити",
+      feature_1: "З шармом",
+      feature_2: "Поступове ускладнення",
+      feature_3: "Зберігання прогресу",
+      feature_4: "Для всієї родини",
+      header_text: "Lost Number — числова головоломка",
+      goal_label: "Ціль",
+      xp_label: "Очки",
+      settings_title: "Налаштування ⚙️",
+      settings_animations_label: "Анімації:",
+      settings_animations_on: "Увімкнені",
+      settings_animations_off: "Вимкнені",
+      settings_sound_label: "Звук:",
+      settings_sound_on: "Увімкнений",
+      settings_sound_off: "Вимкнений",
+      settings_language_label: "Мова інтерфейсу:",
+      settings_language_ua: "Українська",
+      settings_language_ru: "Русский",
+      settings_language_en: "English",
+      about_title: "Про гру ℹ️",
+      about_p1: "Lost Number — це спокійна логічна гра з числами.",
+      about_p2: "Об'єднуйте однакові та зростаючі числа дотиком, отримуйте більші значення та рухайтеся з рівня на рівень.",
+      about_p3: "Грайте так, як зручно саме вам.",
+      victory_title: "🎉 Вітаємо! 🎉",
+      victory_text: "Ви дійшли до фінального рівня цієї версії гри. Але завжди можна почати нову спробу 🙂",
+      level_reached_title: "Рівень {level} пройдено ✨",
+      level_reached_text: "Чудова комбінація. Рухаємося далі.",
+      level_stats_points: "Очки: {points}",
+      level_stats_carry: "Ми зберегли число {value} для наступного рівня.",
+      level_countdown: "Переходимо на рівень {level} через {seconds}…",
+      dice_title: "Кубик бонусів 🎲",
+      dice_spinning: "Крутиться…",
+      dice_choose_reward: "Оберіть бонус:",
+      dice_not_enough: "Потрібно трохи більше очок для використання кубика.",
+      dice_btn_ready: "Кубик бонусів",
+      dice_btn_not_ready: "Недостатньо очок",
+      confirm_new_game: "Почати нову гру? Поточний прогрес буде втрачено.",
+      save_done: "Прогрес збережено.",
+      chain_invalid: "Спробуйте іншу комбінацію.",
+      no_bonus: "Поки що немає такого бонусу.",
+      choose_cell_bonus: "Оберіть клітинку для бонусу.",
+      shuffle_done: "Поле перемішано.",
+      destroy_done: "Клітинку оновлено.",
+      explosion_done: "Групу клітинок оновлено.",
+      msg_random_1: "Гарний хід.",
+      msg_random_2: "Цікава комбінація.",
+      msg_random_3: "Продовжуйте в тому ж дусі.",
+      msg_random_4: "Поле поступово ускладнюється.",
+      msg_random_5: "Крок за кроком — і результат прийде.",
+      level_label: "Рівень",
+      bonus_destroy: "🔨 Розбити",
+      bonus_shuffle: "🔄 Перемішати",
+      bonus_explosion: "💥 Вибух 3×3",
+      dice_got: "Отримано бонус: {label}."
+    },
+    ru: {
+      app_title: "Lost Number — числовая головоломка",
+      main_title: "Числовая головоломка",
+      main_subtitle: "Спокойная игра с числами. Играйте в своём темпе, без спешки.",
+      btn_continue: "▶ Продолжить",
+      btn_new_game: "🎮 Новая игра",
+      btn_settings: "⚙️ Настройки",
+      btn_about: "ℹ️ Об игре",
+      btn_play_again: "🔄 Начать заново",
+      btn_back_to_menu: "🏠 Главное меню",
+      btn_save_settings: "💾 Сохранить",
+      btn_back: "← Назад",
+      btn_close_dice: "Закрыть",
+      feature_1: "Без усилий",
+      feature_2: "Плавное усложнение",
+      feature_3: "Сохранение прогресса",
+      feature_4: "Для всей семьи",
+      header_text: "Lost Number — числовая головоломка",
+      goal_label: "Цель",
+      xp_label: "Очки",
+      settings_title: "Настройки ⚙️",
+      settings_animations_label: "Анимации:",
+      settings_animations_on: "Включены",
+      settings_animations_off: "Выключены",
+      settings_sound_label: "Звук:",
+      settings_sound_on: "Включён",
+      settings_sound_off: "Выключен",
+      settings_language_label: "Язык интерфейса:",
+      settings_language_ua: "Українська",
+      settings_language_ru: "Русский",
+      settings_language_en: "English",
+      about_title: "Об игре ℹ️",
+      about_p1: "Lost Number — спокойная логическая игра с числами.",
+      about_p2: "Соединяйте одинаковые и растущие числа, получайте большие значения и переходите на новые уровни.",
+      about_p3: "Играйте так, как удобно именно вам.",
+      victory_title: "🎉 Поздравляем! 🎉",
+      victory_text: "Вы дошли до финального уровня этой версии игры. Но всегда можно начать заново 🙂",
+      level_reached_title: "Уровень {level} пройден ✨",
+      level_reached_text: "Отличная комбинация. Двигаемся дальше.",
+      level_stats_points: "Очки: {points}",
+      level_stats_carry: "Мы сохранили число {value} для следующего уровня.",
+      level_countdown: "Переходим на уровень {level} через {seconds}…",
+      dice_title: "Кубик бонусов 🎲",
+      dice_spinning: "Крутится…",
+      dice_choose_reward: "Выберите бонус:",
+      dice_not_enough: "Нужно немного больше очков, чтобы использовать кубик.",
+      dice_btn_ready: "Кубик бонусов",
+      dice_btn_not_ready: "Мало очков",
+      confirm_new_game: "Начать новую игру? Текущий прогресс будет потерян.",
+      save_done: "Прогресс сохранён.",
+      chain_invalid: "Попробуйте другую комбинацию.",
+      no_bonus: "Пока нет такого бонуса.",
+      choose_cell_bonus: "Выберите клетку для бонуса.",
+      shuffle_done: "Поле перемешано.",
+      destroy_done: "Клетка обновлена.",
+      explosion_done: "Группа клеток обновлена.",
+      msg_random_1: "Хороший ход.",
+      msg_random_2: "Интересная комбинация.",
+      msg_random_3: "Продолжайте в том же духе.",
+      msg_random_4: "Поле постепенно усложняется.",
+      msg_random_5: "Шаг за шагом — и всё получится.",
+      level_label: "Уровень",
+      bonus_destroy: "🔨 Разбить",
+      bonus_shuffle: "🔄 Перемешать",
+      bonus_explosion: "💥 Взрыв 3×3",
+      dice_got: "Получен бонус: {label}."
+    },
+    en: {
+      app_title: "Lost Number — number puzzle",
+      main_title: "Number puzzle",
+      main_subtitle: "A calm number game. Play at your own pace, with no timers and no pressure.",
+      btn_continue: "▶ Continue",
+      btn_new_game: "🎮 New game",
+      btn_settings: "⚙️ Settings",
+      btn_about: "ℹ️ About",
+      btn_play_again: "🔄 Play again",
+      btn_back_to_menu: "🏠 Main menu",
+      btn_save_settings: "💾 Save",
+      btn_back: "← Back",
+      btn_close_dice: "Close",
+      feature_1: "No timers",
+      feature_2: "Smooth difficulty",
+      feature_3: "Saves progress",
+      feature_4: "Family friendly",
+      header_text: "Lost Number — number puzzle",
+      goal_label: "Goal",
+      xp_label: "Score",
+      settings_title: "Settings ⚙️",
+      settings_animations_label: "Animations:",
+      settings_animations_on: "Enabled",
+      settings_animations_off: "Disabled",
+      settings_sound_label: "Sound:",
+      settings_sound_on: "On",
+      settings_sound_off: "Off",
+      settings_language_label: "Interface language:",
+      settings_language_ua: "Українська",
+      settings_language_ru: "Русский",
+      settings_language_en: "English",
+      about_title: "About the game ℹ️",
+      about_p1: "Lost Number is a calm logic game with numbers.",
+      about_p2: "Connect equal and growing numbers, get bigger values and move from level to level.",
+      about_p3: "No timers and no pressure — play the way that feels comfortable.",
+      victory_title: "🎉 Congratulations! 🎉",
+      victory_text: "You have reached the final level of this version. You can always start again 🙂",
+      level_reached_title: "Level {level} completed ✨",
+      level_reached_text: "Great combination. Let's continue.",
+      level_stats_points: "Score: {points}",
+      level_stats_carry: "We kept number {value} for the next level.",
+      level_countdown: "Going to level {level} in {seconds}…",
+      dice_title: "Bonus dice 🎲",
+      dice_spinning: "Rolling…",
+      dice_choose_reward: "Choose a bonus:",
+      dice_not_enough: "You need a bit more points to use the dice.",
+      dice_btn_ready: "Bonus dice",
+      dice_btn_not_ready: "Not enough points",
+      confirm_new_game: "Start a new game? Current progress will be lost.",
+      save_done: "Progress saved.",
+      chain_invalid: "Try a different combination.",
+      no_bonus: "You don't have this bonus yet.",
+      choose_cell_bonus: "Choose a cell for the bonus.",
+      shuffle_done: "The board has been shuffled.",
+      destroy_done: "Cell has been refreshed.",
+      explosion_done: "Group of cells has been refreshed.",
+      msg_random_1: "Nice move.",
+      msg_random_2: "Interesting combination.",
+      msg_random_3: "Keep going.",
+      msg_random_4: "The board is getting trickier.",
+      msg_random_5: "Step by step towards the result.",
+      level_label: "Level",
+      bonus_destroy: "🔨 Destroy",
+      bonus_shuffle: "🔄 Shuffle",
+      bonus_explosion: "💥 Explosion 3×3",
+      dice_got: "Bonus received: {label}."
+    }
+  };
+
+  const RANDOM_MESSAGES_KEYS = [
+    "msg_random_1",
+    "msg_random_2",
+    "msg_random_3",
+    "msg_random_4",
+    "msg_random_5"
+  ];
+
+  class LostNumberGame {
+    constructor() {
+      this.GRID_W = 5;
+      this.GRID_H = 8;
+
+      this.levels = this.generateLevels(40);
+      this.MAX_LEVEL = this.levels.length;
+
+      this.currentLevel = 0;
+      this.grid = [];
+      this.selected = [];
+      this.chainNumbers = [];
+      this.isDragging = false;
+      this.activeBonus = null;
+
+      this.xp = 0;
+      this.gameState = "playing";
+
+      this.animationEnabled = true;
+      this.lang = "ua";
+      this.soundEnabled = true;
+
+      this.bonusInventory = { destroy: 0, shuffle: 0, explosion: 0 };
+
+      this.pendingTransition = null;
+      this.carryNumberPending = null;
+      this.hasSave = false;
+
+      this.diceRollsToday = 0;
+      this.lastDiceReset = null;
+
+      // аудио
+      this.music = null;
+      this.tapSound = null;
+      this.musicInitialized = false;
+
+      // canvas для линии
+      this.chainCanvas = null;
+      this.chainCtx = null;
+
+      this.createFloatingNumbers();
+      this.setupUI();
+      this.applyTranslations();
+      this.checkExistingSave();
+      this.showScreen("mainMenu");
+
+      // Инициализация canvas - УБРАТЬ ДО render(), чтобы размеры были правильные
+      setTimeout(() => this.initChainCanvas(), 100);
+
+      document.addEventListener("contextmenu", e => e.preventDefault());
+    }
+
+    initChainCanvas() {
+      this.chainCanvas = document.getElementById("chainCanvas");
+      if (!this.chainCanvas) return;
+      
+      this.chainCtx = this.chainCanvas.getContext("2d");
+      
+      const resizeCanvas = () => {
+        const container = document.querySelector('.grid-container');
+        if (container && this.chainCanvas) {
+          const rect = container.getBoundingClientRect();
+          this.chainCanvas.width = rect.width;
+          this.chainCanvas.height = rect.height;
+        }
+      };
+      
+      // Ждем пока DOM полностью загрузится
+      setTimeout(() => {
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+      }, 50);
+    }
+
+    t(key) {
+      const pack = I18N[this.lang] || I18N["ua"];
+      return pack[key] || key;
+    }
+
+    formatTemplate(key, params) {
+      let text = this.t(key);
+      Object.keys(params || {}).forEach(k => {
+        text = text.replace(`{${k}}`, params[k]);
+      });
+      return text;
+    }
+
+    applyTranslations() {
+      document.documentElement.lang = (this.lang === "ua" ? "uk" : this.lang);
+      document.title = this.t("app_title");
+
+      document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        if (!key) return;
+        el.textContent = this.t(key);
+      });
+
+      const goalLabel = document.querySelector("[data-i18n='goal_label']");
+      if (goalLabel) goalLabel.textContent = this.t("goal_label");
+
+      const xpText = document.getElementById("xpText");
+      if (xpText) {
+        xpText.textContent = this.t("xp_label") + ": " + this.xp.toString();
+      }
+
+      const diceTitle = document.getElementById("diceTitle");
+      if (diceTitle) diceTitle.textContent = this.t("dice_title");
+
+      const animSel = document.getElementById("animationSelect");
+      if (animSel) animSel.value = this.animationEnabled ? "on" : "off";
+
+      const soundSel = document.getElementById("soundSelect");
+      if (soundSel) soundSel.value = this.soundEnabled ? "on" : "off";
+
+      const langSel = document.getElementById("languageSelect");
+      if (langSel) langSel.value = this.lang;
+
+      const dBtn = document.getElementById("bonus-destroy");
+      const sBtn = document.getElementById("bonus-shuffle");
+      const eBtn = document.getElementById("bonus-explosion");
+      if (dBtn) dBtn.title = this.t("bonus_destroy");
+      if (sBtn) sBtn.title = this.t("bonus_shuffle");
+      if (eBtn) eBtn.title = this.t("bonus_explosion");
+
+      const headerText = document.getElementById("headerText");
+      if (headerText) headerText.textContent = this.t("header_text");
+    }
+
+    generateLevels(count) {
+      const levels = [];
+      let target = 64;
+      let baseNumbers = [2,4,8];
+
+      for (let i=0;i<count;i++) {
+        const numbers = [...baseNumbers];
+        const newNumbers = this.generateNewNumbers(target);
+
+        levels.push({ target, numbers, newNumbers });
+
+        target *= 2;
+        if (i%3===2 && baseNumbers.length<7) {
+          baseNumbers.push(baseNumbers[baseNumbers.length-1]*2);
+        }
+      }
+      return levels;
+    }
+
+    generateNextLevel() {
+      const last = this.levels[this.levels.length - 1];
+      let target = last.target * 2;
+      const baseNumbers = [...last.numbers];
+      const newNumbers = this.generateNewNumbers(target);
+      this.levels.push({ target, numbers: baseNumbers, newNumbers });
+      this.MAX_LEVEL = this.levels.length;
+    }
+
+    generateNewNumbers(target) {
+      const arr = [];
+      let num = target/8;
+      for (let i=0;i<8;i++) {
+        if (num <= target) {
+          arr.unshift(num);
+          num *= 2;
+        }
+      }
+      return arr;
+    }
+
+    createFloatingNumbers() {
+      const container = document.getElementById("floatingHearts");
+      const count = 14;
+      const symbols = ["2","4","8","16","32","64","128"];
+      for (let i=0;i<count;i++) {
+        const h = document.createElement("div");
+        h.className = "floating-heart";
+        h.textContent = symbols[Math.floor(Math.random()*symbols.length)];
+        h.style.left = Math.random()*100 + "vw";
+        h.style.top  = Math.random()*100 + "vh";
+        h.style.animationDelay = Math.random()*7 + "s";
+        h.style.fontSize = (0.7+Math.random()*0.9)+"rem";
+        container.appendChild(h);
+      }
+    }
+
+    initAudio() {
+      if (this.musicInitialized) return;
+      this.musicInitialized = true;
+      try {
+        this.music = new Audio("audio/music/ambient.mp3");
+        this.music.loop = true;
+        this.music.volume = 0.35;
+      } catch(e) {
+        this.music = null;
+      }
+      try {
+        this.tapSound = new Audio("audio/sfx/tap.mp3");
+        this.tapSound.volume = 0.45;
+      } catch(e) {
+        this.tapSound = null;
+      }
+      this.updateSoundStateUI();
+    }
+
+    playTap() {
+      if (!this.soundEnabled || !this.tapSound) return;
+      try {
+        const clone = this.tapSound.cloneNode();
+        clone.volume = this.tapSound.volume;
+        clone.play().catch(()=>{});
+      } catch(e) {}
+    }
+
+    playMusicIfEnabled() {
+      if (!this.soundEnabled || !this.music) return;
+      try {
+        if (this.music.paused) {
+          this.music.play().catch(()=>{});
+        }
+      } catch(e) {}
+    }
+
+    updateSoundStateUI() {
+      const btn = document.getElementById("soundToggleBtn");
+      if (btn) {
+        btn.textContent = this.soundEnabled ? "🔊" : "🔇";
+      }
+      if (!this.musicInitialized) return;
+      if (this.soundEnabled) {
+        this.playMusicIfEnabled();
+      } else if (this.music && !this.music.paused) {
+        try { this.music.pause(); } catch(e) {}
+      }
+    }
+
+    setupUI() {
+      const continueBtn = document.getElementById("continueBtn");
+      const newGameBtn  = document.getElementById("newGameBtn");
+
+      // ПРОДОЛЖИТЬ
+      continueBtn.addEventListener("click", () => {
+        this.playTap();
+        this.initAudio();
+        this.playMusicIfEnabled();
+        this.resumeGame();
+      });
+
+      // НОВАЯ ИГРА
+      newGameBtn.addEventListener("click", () => {
+        this.playTap();
+        this.initAudio();
+        this.playMusicIfEnabled();
+        if (this.hasSave) {
+          const ok = confirm(this.t("confirm_new_game"));
+          if (!ok) return;
+        }
+        localStorage.removeItem("lostNumberSave");
+        this.hasSave = false;
+        this.startNewGame();
+      });
+
+      // КНОПКА ВЫХОДА
+      document.getElementById("exitBtn").addEventListener("click", () => {
+        this.playTap();
+        if (confirm("Выйти из игры?")) {
+          if (window.history.length > 1) {
+            window.history.back();
+          } else {
+            this.showScreen("mainMenu");
+          }
+        }
+      });
+
+      // КНОПКИ МЕНЮ
+      document.getElementById("settingsBtn").addEventListener("click", () => {
+        this.playTap();
+        this.showScreen("settings");
+      });
+
+      document.getElementById("aboutBtn").addEventListener("click", () => {
+        this.playTap();
+        this.showScreen("about");
+      });
+
+      document.getElementById("homeBtn").addEventListener("click", () => {
+        this.playTap();
+        this.showScreen("mainMenu");
+      });
+
+      document.getElementById("saveBtn").addEventListener("click", () => {
+        this.playTap();
+        this.saveGameState();
+        this.showMessage(this.t("save_done"));
+      });
+
+      document.getElementById("backFromSettingsBtn").addEventListener("click", () => {
+        this.playTap();
+        this.showScreen("mainMenu");
+      });
+
+      document.getElementById("backFromAboutBtn").addEventListener("click", () => {
+        this.playTap();
+        this.showScreen("mainMenu");
+      });
+
+      document.getElementById("saveSettingsBtn").addEventListener("click", () => {
+        this.playTap();
+        this.animationEnabled = document.getElementById("animationSelect").value === "on";
+        this.soundEnabled     = document.getElementById("soundSelect").value === "on";
+        this.lang             = document.getElementById("languageSelect").value || "ua";
+
+        this.applyTranslations();
+        this.updateSoundStateUI();
+        this.saveGameState();
+        this.showScreen("mainMenu");
+      });
+
+      // ЗВУК
+      document.getElementById("soundToggleBtn").addEventListener("click", () => {
+        this.playTap();
+        this.soundEnabled = !this.soundEnabled;
+        const soundSel = document.getElementById("soundSelect");
+        if (soundSel) soundSel.value = this.soundEnabled ? "on" : "off";
+        this.updateSoundStateUI();
+        this.saveGameState();
+      });
+
+      // ПОБЕДА
+      document.getElementById("playAgainBtn").addEventListener("click", () => {
+        this.playTap();
+        this.hideVictory();
+        this.startNewGame();
+      });
+
+      document.getElementById("backToMenuBtn").addEventListener("click", () => {
+        this.playTap();
+        this.hideVictory();
+        this.showScreen("mainMenu");
+      });
+
+      // КУБИК БОНУСІВ
+      const diceBtn = document.getElementById("bonus-dice");
+      if (diceBtn) {
+        diceBtn.addEventListener("click", () => {
+          this.playTap();
+          this.handleDice();
+        });
+      }
+
+      // БОНУСЫ
+      document.getElementById("bonus-destroy").addEventListener("click", () => {
+        this.playTap();
+        this.activateBonus("destroy");
+      });
+      document.getElementById("bonus-shuffle").addEventListener("click", () => {
+        this.playTap();
+        this.activateBonus("shuffle");
+      });
+      document.getElementById("bonus-explosion").addEventListener("click", () => {
+        this.playTap();
+        this.activateBonus("explosion");
+      });
+
+      // GRID EVENTS
+      const grid = document.getElementById("grid");
+      grid.addEventListener("pointerdown", e => this.handlePointerDown(e));
+      grid.addEventListener("pointermove", e => this.handlePointerMove(e));
+      grid.addEventListener("pointerup",   () => this.handlePointerUp());
+      grid.addEventListener("pointercancel", () => this.handlePointerUp());
+   
+      // ТЕМА
+      document.getElementById("themeToggle").addEventListener("click", () => {
+        this.playTap();
+        document.body.classList.toggle("dark-theme");
+        const mode = document.body.classList.contains("dark-theme") ? "dark" : "light";
+        localStorage.setItem("theme", mode);
+      });
+    }
+
+    checkExistingSave() {
+      const raw = localStorage.getItem("lostNumberSave");
+      const continueBtn = document.getElementById("continueBtn");
+
+      if (!raw) {
+        this.hasSave = false;
+        if (continueBtn) { continueBtn.disabled = true; continueBtn.style.opacity = "0.5"; }
+        return;
+      }
+      try {
+        const data = JSON.parse(raw);
+        if (!data || typeof data !== "object") throw new Error("bad");
+        this.restoreFromState(data);
+        this.hasSave = true;
+        if (continueBtn) { continueBtn.disabled = false; continueBtn.style.opacity = "1"; }
+      } catch (e) {
+        console.error("Bad save:", e);
+        this.hasSave = false;
+        if (continueBtn) { continueBtn.disabled = true; continueBtn.style.opacity = "0.5"; }
+      }
+    }
+
+    showScreen(name) {
+      document.querySelectorAll(".screen").forEach(s => s.classList.add("hidden"));
+      const screen = document.getElementById(name+"Screen");
+      if(screen) screen.classList.remove("hidden");
+      
+      // При показе игрового экрана переинициализируем canvas
+      if (name === "game") {
+        setTimeout(() => {
+          this.initChainCanvas();
+          this.render();
+        }, 50);
+      }
+    }
+
+    resumeGame() {
+      const raw = localStorage.getItem("lostNumberSave");
+      if (!raw) { this.startNewGame(); return; }
+      try {
+        const data = JSON.parse(raw);
+        if (!data || typeof data !== "object") throw new Error("bad");
+        this.restoreFromState(data);
+        this.showScreen("game");
+        setTimeout(() => {
+          this.render();
+          this.initChainCanvas();
+        }, 50);
+      } catch (e) {
+        console.error("Resume fail, starting new:", e);
+        this.startNewGame();
+        this.showScreen("game");
+      }
+    }
+
+    startNewGame() {
+      this.currentLevel = 0;
+      this.xp = 0;
+      this.bonusInventory = { destroy:0, shuffle:0, explosion:0 };
+      this.pendingTransition = null;
+      this.carryNumberPending = null;
+      this.diceRollsToday = 0;
+      this.lastDiceReset = null;
+      this.initGame(0);
+      this.saveGameState();
+      this.showScreen("game");
+    }
+
+    restoreFromState(state) {
+      this.currentLevel = Math.min(state.currentLevel ?? 0, this.MAX_LEVEL-1);
+      this.xp = state.xp ?? 0;
+      this.bonusInventory = state.bonusInventory || {destroy:0,shuffle:0,explosion:0};
+      this.animationEnabled = state.animationEnabled !== false;
+      this.lang = state.lang || this.lang || "ua";
+      this.soundEnabled = state.soundEnabled !== false;
+      this.pendingTransition = state.pendingTransition || null;
+      this.diceRollsToday = state.diceRollsToday ?? 0;
+      this.lastDiceReset = state.lastDiceReset ?? null;
+
+      this.applyTranslations();
+      this.updateSoundStateUI();
+      this.checkDiceResetDaily();
+
+      const numbers = state.grid;
+      if (Array.isArray(numbers) && numbers.length === this.GRID_W) {
+        this.grid = [];
+        for (let x=0;x<this.GRID_W;x++) {
+          this.grid[x] = [];
+          for (let y=0;y<this.GRID_H;y++) {
+            const num = numbers[x]?.[y] ?? 2;
+            this.grid[x][y] = { number: num, merged:false };
+          }
+        }
+        if (this.pendingTransition && this.pendingTransition.active) {
+          this.currentLevel = Math.min(this.pendingTransition.nextLevel, this.MAX_LEVEL-1);
+          this.carryNumberPending = this.pendingTransition.carryNumber ?? null;
+          this.pendingTransition = null;
+          this.initGame(this.currentLevel);
+          this.saveGameState();
+        } else {
+          this.updateTargetInfo();
+          this.updateXPBar();
+          this.updateBonusButtons();
+          this.updateDiceButton();
+        }
+      } else {
+        this.initGame(this.currentLevel);
+        this.saveGameState();
+      }
+    }
+
+    initGame(levelIndex=0) {
+      this.currentLevel = levelIndex;
+      const level = this.levels[this.currentLevel];
+
+      this.selected = [];
+      this.chainNumbers = [];
+      this.gameState = "playing";
+      this.activeBonus = null;
+
+      this.grid = [];
+      const minBase = this.computeMinBaseForLevel(level);
+      const baseFiltered = level.numbers.filter(n=>n>=minBase);
+      const pool = baseFiltered.length ? baseFiltered : level.numbers;
+
+      for (let x=0;x<this.GRID_W;x++) {
+        this.grid[x] = [];
+        for (let y=0;y<this.GRID_H;y++) {
+          this.grid[x][y] = {
+            number: pool[Math.floor(Math.random()*pool.length)],
+            merged: false
+          };
+        }
+      }
+
+      let carryPos = null;
+      if (this.carryNumberPending != null) {
+        const val = this.carryNumberPending;
+        this.carryNumberPending = null;
+        const rx = Math.floor(Math.random()*this.GRID_W);
+        const ry = Math.floor(Math.random()*this.GRID_H);
+        this.grid[rx][ry].number = val;
+        this.grid[rx][ry].merged = false;
+        carryPos = {x:rx,y:ry};
+      }
+
+      this.updateTargetInfo();
+      this.updateXPBar();
+      this.updateBonusButtons();
+      this.updateDiceButton();
+      this.render();
+
+      if (carryPos) setTimeout(()=>this.animateCarryAppear(carryPos.x,carryPos.y), 50);
+    }
+
+    computeMinBaseForLevel(level) {
+      const t = level.target;
+      if (t <= 256) return 2;
+      if (t <= 1024) return 4;
+      if (t <= 4096) return 8;
+      if (t <= 16384) return 16;
+      if (t <= 65536) return 32;
+      return 64;
+    }
+
+    updateTargetInfo() {
+      const level = this.levels[this.currentLevel];
+
+      // обновляем 🎯 цель
+      const targetEl = document.getElementById("targetValue");
+      if (targetEl) targetEl.textContent = this.formatNumber(level.target);
+
+      // обновляем 📘 номер уровня
+      const lvlEl = document.querySelector(".goal-level-label");
+      if (lvlEl) lvlEl.textContent = "📘№" + (this.currentLevel + 1);
+    }
+
+    render() {
+      const gridDiv = document.getElementById("grid");
+      if (!gridDiv) return;
+      
+      gridDiv.innerHTML = "";
+
+      for (let y=0;y<this.GRID_H;y++) {
+        for (let x=0;x<this.GRID_W;x++) {
+          const cellData = this.grid[x][y];
+
+          let num = cellData.number;
+          if (num == null) {
+            const level = this.levels[this.currentLevel];
+            const minBase = this.computeMinBaseForLevel(level);
+            const baseFiltered = level.numbers.filter(v => v >= minBase);
+            const pool = baseFiltered.length ? baseFiltered : level.numbers;
+            num = pool[Math.floor(Math.random()*pool.length)];
+            cellData.number = num;
+          }
+
+          const cell = document.createElement("div");
+          cell.className = "cell";
+          cell.dataset.x = x;
+          cell.dataset.y = y;
+          cell.dataset.number = num;
+
+          if (this.selected.some(s=>s.x===x && s.y===y)) cell.classList.add("selected");
+          if (cellData.merged) cell.classList.add("merged");
+
+          const inner = document.createElement("div");
+          inner.className = "cell-inner";
+          inner.textContent = this.formatNumber(num);
+          cell.appendChild(inner);
+
+          gridDiv.appendChild(cell);
+        }
+      }
+      
+      // После рендера обновляем canvas
+      setTimeout(() => {
+        if (this.chainCanvas) {
+          const container = document.querySelector('.grid-container');
+          if (container) {
+            const rect = container.getBoundingClientRect();
+            this.chainCanvas.width = rect.width;
+            this.chainCanvas.height = rect.height;
+          }
+        }
+      }, 10);
+    }
+
+    animateCarryAppear(x,y) {
+      const gridDiv = document.getElementById("grid");
+      const cell = gridDiv.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+      if (!cell) return;
+      cell.classList.add("carry");
+      setTimeout(()=>cell.classList.remove("carry"), 500);
+    }
+
+    getCellFromPoint(clientX, clientY) {
+      const el = document.elementFromPoint(clientX, clientY);
+      if (!el) return null;
+      const cell = el.classList.contains("cell") ? el : el.closest(".cell");
+      if (!cell) return null;
+      return { x:parseInt(cell.dataset.x,10), y:parseInt(cell.dataset.y,10) };
+    }
+
+    handlePointerDown(e) {
+      if (this.gameState !== "playing") return;
+      const posCell = this.getCellFromPoint(e.clientX, e.clientY);
+      if (!posCell) return;
+
+      if (this.activeBonus === "destroy") { this.useDestroyBonus(posCell.x,posCell.y); return; }
+      if (this.activeBonus === "explosion") { this.useExplosionBonus(posCell.x,posCell.y); return; }
+
+      this.isDragging = true;
+      this.selected = [posCell];
+      this.chainNumbers = [this.grid[posCell.x][posCell.y].number];
+      this.updatePreviewBubble(this.getCurrentChainSum(), e);
+      this.render();
+      
+      this.drawChainLine();
+    }
+
+    drawChainLine() {
+      if (!this.chainCtx || !this.chainCanvas) {
+        this.initChainCanvas();
+        return;
+      }
+      
+      if (!this.chainCtx || !this.chainCanvas) return;
+
+      const ctx = this.chainCtx;
+      const canvas = this.chainCanvas;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (!this.selected || this.selected.length < 2) return;
+
+      // Получаем реальные координаты grid
+      const grid = document.getElementById("grid");
+      if (!grid) return;
+      
+      const gridRect = grid.getBoundingClientRect();
+      const containerRect = canvas.getBoundingClientRect();
+      
+      // Вычисляем смещение canvas относительно grid
+      const offsetX = gridRect.left - containerRect.left;
+      const offsetY = gridRect.top - containerRect.top;
+      
+      const cellW = gridRect.width / this.GRID_W;
+      const cellH = gridRect.height / this.GRID_H;
+
+      const first = this.selected[0];
+      const last = this.selected[this.selected.length - 1];
+
+      const x0 = offsetX + (first.x + 0.5) * cellW;
+      const y0 = offsetY + (first.y + 0.5) * cellH;
+      const x1 = offsetX + (last.x + 0.5) * cellW;
+      const y1 = offsetY + (last.y + 0.5) * cellH;
+
+      const grad = ctx.createLinearGradient(x0, y0, x1, y1);
+      grad.addColorStop(0, "#e91e63");
+      grad.addColorStop(1, "#ff4081");
+
+      ctx.lineWidth = 4;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      ctx.strokeStyle = grad;
+
+      ctx.beginPath();
+      this.selected.forEach((c, i) => {
+        const cx = offsetX + (c.x + 0.5) * cellW;
+        const cy = offsetY + (c.y + 0.5) * cellH;
+        if (i === 0) ctx.moveTo(cx, cy);
+        else ctx.lineTo(cx, cy);
+      });
+      ctx.stroke();
+    }
+
+    handlePointerMove(e) {
+      if (!this.isDragging || this.activeBonus) return;
+      e.preventDefault();
+
+      const posCell = this.getCellFromPoint(e.clientX,e.clientY);
+      this.updatePreviewBubble(this.getCurrentChainSum(), e);
+
+      if (!posCell) return;
+      const len = this.selected.length;
+      if (len === 0) return;
+
+      if (len >= 2) {
+        const prev = this.selected[len-2];
+        if (prev.x === posCell.x && prev.y === posCell.y) {
+          this.selected.pop(); this.chainNumbers.pop();
+          this.updatePreviewBubble(this.getCurrentChainSum(), e);
+          this.render();
+          this.drawChainLine();
+          return;
+        }
+      }
+
+      if (this.selected.some(s=>s.x===posCell.x && s.y===posCell.y)) return;
+
+      const last = this.selected[len-1];
+      if (!this.isAdjacent(last,posCell)) return;
+
+      const newNum = this.grid[posCell.x][posCell.y].number;
+      const prevNum = this.chainNumbers[this.chainNumbers.length-1];
+
+      const S = this.getCurrentChainSum();
+      const L = prevNum;
+
+      const allowed =
+         (newNum === L) ||
+         (newNum === L * 2) ||
+         (newNum === S && S >= L);
+
+      if (allowed) {
+        this.selected.push(posCell);
+        this.chainNumbers.push(newNum);
+        this.updatePreviewBubble(this.getCurrentChainSum(), e);
+        this.render();
+        this.drawChainLine();
+      }
+    }
+
+    handlePointerUp() {
+      if (!this.isDragging) return;
+      this.isDragging = false;
+      this.hidePreviewBubble();
+      this.clearChainLine();
+      if (this.selected.length >= 2) {
+        this.mergeChain();
+      } else {
+        this.selected = [];
+        this.chainNumbers = [];
+        this.render();
+      }
+    }
+
+    clearChainLine() {
+      if (!this.chainCtx || !this.chainCanvas) return;
+      this.chainCtx.clearRect(0, 0, this.chainCanvas.width, this.chainCanvas.height);
+    }
+
+    isAdjacent(a,b) {
+      return Math.abs(a.x-b.x) <= 1 && Math.abs(a.y-b.y) <= 1;
+    }
+
+    getCurrentChainSum() {
+      return this.chainNumbers.reduce((s,v)=>s+v,0);
+    }
+
+    isPowerOfTwo(num) {
+      return num > 0 && (num & (num - 1)) === 0;
+    }
+
+    isValidResultNumber(num, level) {
+      const minBase = this.computeMinBaseForLevel(level);
+      if (!this.isPowerOfTwo(num)) return false;
+      if (num < minBase) return false;
+      const maxAllowed = level.target * 2;
+      if (num > maxAllowed) return false;
+      return true;
+    }
+
+    baseXPByLen(len) {
+      if (len <= 1) return 0;
+      if (len === 2) return 4;
+      if (len === 3) return 8;
+      if (len === 4) return 12;
+      if (len === 5) return 18;
+      return 25;
+    }
+    levelXPMult() {
+      return 1 + (this.currentLevel+1)*0.06;
+    }
+    calculateXP(len) {
+      const base = this.baseXPByLen(len);
+      return Math.max(0, Math.round(base * this.levelXPMult()));
+    }
+
+    mergeChain() {
+      const level = this.levels[this.currentLevel];
+      const sum = this.getCurrentChainSum();
+      const anchor = this.selected[this.selected.length-1];
+      const removedCells = this.selected.slice(0,-1);
+
+      if (!this.isValidResultNumber(sum, level)) {
+        this.showMessage(this.t("chain_invalid"));
+        this.selected = [];
+        this.chainNumbers = [];
+        this.render();
+        return;
+      }
+
+      this.grid[anchor.x][anchor.y].number = sum;
+      this.grid[anchor.x][anchor.y].merged = true;
+      this.render();
+
+      this.animatePopping(removedCells, () => {
+        this.animateGravity(removedCells, () => {
+          this.applyLocalGravity(removedCells);
+
+          const xpEarned = this.calculateXP(this.selected.length);
+          this.xp += xpEarned;
+
+          this.selected = [];
+          this.chainNumbers = [];
+
+          this.updateXPBar();
+          this.updateBonusButtons();
+          this.updateDiceButton();
+          this.render();
+          this.saveGameState();
+          this.checkWin();
+          if (this.gameState === "playing") this.showRandomMessage();
+        });
+      });
+    }
+
+    animatePopping(cells, callback) {
+      if (!this.animationEnabled) { callback(); return; }
+      const gridDiv = document.getElementById("grid");
+      cells.forEach(s=>{
+        const cell = gridDiv.querySelector(`.cell[data-x="${s.x}"][data-y="${s.y}"]`);
+        if (cell) cell.classList.add("popping");
+      });
+      setTimeout(() => callback(), 270);
+    }
+
+    animateGravity(removedCells, callback) {
+      if (!this.animationEnabled) { callback(); return; }
+      const gridDiv = document.getElementById("grid");
+      const removedMap = {};
+      removedCells.forEach(c => {
+        if (!removedMap[c.x]) removedMap[c.x] = [];
+        removedMap[c.x].push(c.y);
+      });
+
+      for (let x=0;x<this.GRID_W;x++) {
+        const ys = removedMap[x] ? removedMap[x].slice().sort((a,b)=>a-b) : [];
+        if (!ys.length) continue;
+
+        for (let y=0;y<this.GRID_H;y++) {
+          const isRemoved = ys.includes(y);
+          if (isRemoved) continue;
+
+          let holesBelow = 0;
+          ys.forEach(ry => { if (ry > y) holesBelow++; });
+
+          if (holesBelow > 0) {
+            const cell = gridDiv.querySelector(`.cell[data-x="${x}"][data-y="${y}"]`);
+            if (cell) {
+              cell.style.transition = "transform 0.25s ease";
+              cell.style.transform = `translateY(${holesBelow*100}%)`;
+            }
+          }
+        }
+      }
+
+      setTimeout(() => {
+        const cells = gridDiv.querySelectorAll(".cell");
+        cells.forEach(c => { c.style.transition = ""; c.style.transform  = ""; });
+        callback();
+      }, 260);
+    }
+
+    applyLocalGravity(removedCells) {
+      const level = this.levels[this.currentLevel];
+      const minBase = this.computeMinBaseForLevel(level);
+      const baseFiltered = level.numbers.filter(n => n >= minBase);
+      const pool = baseFiltered.length ? baseFiltered : level.numbers;
+
+      const removedMap = {};
+      removedCells.forEach(c => {
+        if (!removedMap[c.x]) removedMap[c.x] = new Set();
+        removedMap[c.x].add(c.y);
+      });
+
+      for (let x = 0; x < this.GRID_W; x++) {
+        const survivors = [];
+        for (let y=0;y<this.GRID_H;y++) {
+          const isRemoved = removedMap[x]?.has(y);
+          if (!isRemoved) survivors.push(this.grid[x][y].number);
+        }
+
+        const totalCells = this.GRID_H;
+        const newCol = new Array(totalCells).fill(null);
+        let writeY = totalCells-1;
+
+        for (let i=survivors.length-1;i>=0;i--) {
+          if (writeY < 0) break;
+          newCol[writeY] = survivors[i];
+          writeY--;
+        }
+        while (writeY >= 0) {
+          newCol[writeY] = pool[Math.floor(Math.random()*pool.length)];
+          writeY--;
+        }
+
+        for (let y=0;y<this.GRID_H;y++) {
+          this.grid[x][y] = { number:newCol[y], merged:false };
+        }
+      }
+    }
+
+    updateXPBar() {
+      const bar = document.getElementById("xpBar");
+      const txt = document.getElementById("xpText");
+      bar.style.width = "100%";
+      txt.textContent = this.t("xp_label") + ": " + this.xp.toString();
+    }
+
+    getFreeDiceRollsForLevel() {
+      const lvl = this.currentLevel + 1;
+      if (lvl <= 10) return 3;
+      if (lvl <= 25) return 4;
+      return 5;
+    }
+
+    getDiceBaseCostForLevel() {
+      return 18 + (this.currentLevel + 1) * 4;
+    }
+
+    checkDiceResetDaily() {
+      const now = new Date();
+      const today = now.getFullYear() + "-" + (now.getMonth()+1) + "-" + now.getDate();
+
+      if (!this.lastDiceReset) {
+        this.lastDiceReset = today;
+        this.diceRollsToday = 0;
+        return;
+      }
+
+      if (this.lastDiceReset !== today) {
+        this.lastDiceReset = today;
+        this.diceRollsToday = 0;
+      }
+    }
+
+    getDiceCost() {
+      this.checkDiceResetDaily();
+
+      const base = this.getDiceBaseCostForLevel();
+      const freeRolls = this.getFreeDiceRollsForLevel();
+      const used = this.diceRollsToday || 0;
+
+      if (used < freeRolls) {
+        return base;
+      }
+
+      const extraRolls = used - freeRolls + 1;
+      const step = 5;
+      return base + extraRolls * step;
+    }
+
+    updateDiceButton() {
+      const btn = document.getElementById("bonus-dice");
+      const label = document.getElementById("diceCostLabel");
+      const cost = this.getDiceCost();
+      if (label) label.textContent = cost;
+      const enough = this.xp >= cost;
+      btn.disabled = !enough;
+      btn.style.opacity = enough ? "1" : "0.55";
+      if (!enough) btn.title = this.t("dice_btn_not_ready");
+      else btn.title = this.t("dice_btn_ready");
+    }
+
+    handleDice() {
+      const cost = this.getDiceCost();
+      if (this.xp < cost) {
+        this.showMessage(this.t("dice_not_enough"));
+        return;
+      }
+      this.openDice();
+      this.startDiceRoll(cost);
+    }
+
+    openDice() {
+      document.getElementById("diceChoices").innerHTML = "";
+      document.getElementById("diceInfo").textContent = this.t("dice_spinning");
+      document.getElementById("diceOverlay").classList.remove("hidden");
+      const roller = document.getElementById("diceRoller");
+      roller.classList.add("spin");
+    }
+    closeDice() {
+      document.getElementById("diceOverlay").classList.add("hidden");
+      const roller = document.getElementById("diceRoller");
+      roller.classList.remove("spin");
+    }
+
+    startDiceRoll(costAtMoment) {
+      setTimeout(() => {
+        const optionA = this.weightedRandomBonus();
+        const optionB = this.weightedRandomBonus();
+        const choices = document.getElementById("diceChoices");
+        const info = document.getElementById("diceInfo");
+        const roller = document.getElementById("diceRoller");
+        roller.classList.remove("spin");
+        info.textContent = this.t("dice_choose_reward");
+
+        const makeBtn = (type) => {
+          const b = document.createElement("button");
+          b.className = "dice-choice";
+          b.textContent = this.bonusLabel(type);
+          b.addEventListener("click", () => {
+            this.xp -= costAtMoment;
+            if (this.xp < 0) this.xp = 0;
+
+            this.diceRollsToday = (this.diceRollsToday || 0) + 1;
+
+            this.bonusInventory[type] = (this.bonusInventory[type]||0) + 1;
+
+            this.updateXPBar();
+            this.updateBonusButtons();
+            this.updateDiceButton();
+            this.saveGameState();
+            this.showMessage(this.formatTemplate("dice_got", {label: this.bonusLabel(type)}));
+            this.closeDice();
+          });
+          return b;
+        };
+
+        choices.innerHTML = "";
+        choices.appendChild(makeBtn(optionA));
+        choices.appendChild(makeBtn(optionB));
+      }, 1100);
+    }
+
+    bonusLabel(type) {
+      if (type === "explosion") return this.t("bonus_explosion");
+      if (type === "shuffle")   return this.t("bonus_shuffle");
+      return this.t("bonus_destroy");
+    }
+
+    weightedRandomBonus() {
+      const base = { destroy: 1.0, shuffle: 1.0, explosion: 0.45 };
+
+      const d = this.bonusInventory.destroy || 0;
+      const s = this.bonusInventory.shuffle || 0;
+
+      let w = { ...base };
+
+      const maxDS = Math.max(d, s, 1);
+      const minDS = Math.min(d, s);
+      const diffRatio = (maxDS - minDS) / maxDS;
+
+      if (diffRatio >= 0.30) {
+        const boost = Math.min(0.30, diffRatio);
+        if (d < s) w.destroy *= (1 + boost);
+        else if (s < d) w.shuffle *= (1 + boost);
+      }
+
+      const total = w.destroy + w.shuffle + w.explosion;
+      let r = Math.random() * total;
+      if ((r -= w.destroy) < 0)   return "destroy";
+      if ((r -= w.shuffle) < 0)   return "shuffle";
+      return "explosion";
+    }
+
+    activateBonus(type) {
+      if (this.activeBonus === type) {
+        this.activeBonus = null;
+        this.updateBonusButtons();
+        return;
+      }
+      if (this.bonusInventory[type] <= 0) {
+        this.showMessage(this.t("no_bonus"));
+        return;
+      }
+      if (type === "shuffle") {
+        this.bonusInventory.shuffle--;
+        this.animatedShuffleGrid();
+        this.updateBonusButtons();
+        this.saveGameState();
+        this.showMessage(this.t("shuffle_done"));
+        return;
+      }
+      this.activeBonus = type;
+      this.updateBonusButtons();
+      this.showMessage(this.t("choose_cell_bonus"));
+    }
+
+    animatedShuffleGrid() {
+      const gridDiv = document.getElementById("grid");
+      const cells = gridDiv.querySelectorAll(".cell");
+      cells.forEach(c => c.classList.add("shuffle-anim"));
+      setTimeout(() => {
+        this.shuffleGrid();
+        cells.forEach(c => c.classList.remove("shuffle-anim"));
+      }, 350);
+    }
+
+    shuffleGrid() {
+      const all = [];
+      for (let x=0;x<this.GRID_W;x++) for (let y=0;y<this.GRID_H;y++) all.push(this.grid[x][y].number);
+      for (let i=all.length-1;i>0;i--) {
+        const j=Math.floor(Math.random()*(i+1));
+        [all[i],all[j]]=[all[j],all[i]];
+      }
+      let k=0;
+      for (let x=0;x<this.GRID_W;x++) for (let y=0;y<this.GRID_H;y++) {
+        this.grid[x][y].number = all[k++]; this.grid[x][y].merged=false;
+      }
+      this.render();
+    }
+
+    useDestroyBonus(x,y) {
+      if (this.bonusInventory.destroy <= 0) {
+        this.showMessage(this.t("no_bonus"));
+        this.activeBonus = null; this.updateBonusButtons();
+        return;
+      }
+      this.bonusInventory.destroy--;
+
+      const removedCells = [{x,y}];
+
+      this.animatePopping(removedCells, () => {
+        this.animateGravity(removedCells, () => {
+          this.applyLocalGravity(removedCells);
+          this.activeBonus = null;
+          this.updateBonusButtons();
+          this.render();
+          this.saveGameState();
+          this.showMessage(this.t("destroy_done"));
+        });
+      });
+    }
+
+    useExplosionBonus(x,y) {
+      if (this.bonusInventory.explosion <= 0) {
+        this.showMessage(this.t("no_bonus"));
+        this.activeBonus = null; this.updateBonusButtons();
+        return;
+      }
+      this.bonusInventory.explosion--;
+
+      const removedCells = [];
+      for (let dx=-1;dx<=1;dx++) for (let dy=-1;dy<=1;dy++) {
+        const nx=x+dx, ny=y+dy;
+        if (nx>=0 && nx<this.GRID_W && ny>=0 && ny<this.GRID_H) {
+          removedCells.push({x:nx,y:ny});
+        }
+      }
+
+      this.animatePopping(removedCells, () => {
+        this.animateGravity(removedCells, () => {
+          this.applyLocalGravity(removedCells);
+          this.activeBonus = null;
+          this.updateBonusButtons();
+          this.render();
+          this.saveGameState();
+          this.showMessage(this.t("explosion_done"));
+        });
+      });
+    }
+
+    updateBonusButtons() {
+      const dBtn = document.getElementById("bonus-destroy");
+      const sBtn = document.getElementById("bonus-shuffle");
+      const eBtn = document.getElementById("bonus-explosion");
+      const cD = document.getElementById("count-destroy");
+      const cS = document.getElementById("count-shuffle");
+      const cE = document.getElementById("count-explosion");
+
+      if (cD) cD.textContent = this.bonusInventory.destroy;
+      if (cS) cS.textContent = this.bonusInventory.shuffle;
+      if (cE) cE.textContent = this.bonusInventory.explosion;
+
+      dBtn.disabled = (this.bonusInventory.destroy <= 0 && this.activeBonus!=="destroy");
+      sBtn.disabled = (this.bonusInventory.shuffle <= 0 && this.activeBonus!=="shuffle");
+      eBtn.disabled = (this.bonusInventory.explosion <= 0 && this.activeBonus!=="explosion");
+
+      dBtn.classList.toggle("active", this.activeBonus==="destroy");
+      sBtn.classList.toggle("active", this.activeBonus==="shuffle");
+      eBtn.classList.toggle("active", this.activeBonus==="explosion");
+    }
+
+    getMaxNumberOnGrid() {
+      let max = 0;
+      for (let x=0;x<this.GRID_W;x++) for (let y=0;y<this.GRID_H;y++) {
+        const v = this.grid[x][y].number;
+        if (v!=null && v>max) max=v;
+      }
+      return max;
+    }
+
+    checkWin() {
+      const level = this.levels[this.currentLevel];
+      for (let x=0;x<this.GRID_W;x++) for (let y=0;y<this.GRID_H;y++) {
+        if (this.grid[x][y].number === level.target) {
+          this.gameState="win";
+          this.handleLevelComplete();
+          return;
+        }
+      }
+    }
+
+    handleLevelComplete() {
+      const oldXp = this.xp;
+      const maxNumber = this.getMaxNumberOnGrid();
+
+      this.xp = oldXp;
+      this.updateXPBar();
+      this.updateBonusButtons();
+      this.updateDiceButton();
+
+      const prevLevelIndex = this.currentLevel;
+      const prevLevelNumber = prevLevelIndex+1;
+      let nextLevelIndex = prevLevelIndex+1;
+      const nextLevelNumber = nextLevelIndex+1;
+
+      this.pendingTransition = { active: true, nextLevel: nextLevelIndex, carryNumber: maxNumber };
+      this.saveGameState();
+
+      const overlay = document.getElementById("levelOverlay");
+      const title = document.getElementById("levelOverlayTitle");
+      const text  = document.getElementById("levelOverlayText");
+      const stats = document.getElementById("levelStats");
+      const countdown = document.getElementById("levelCountdown");
+
+      title.textContent = this.formatTemplate("level_reached_title", {level: prevLevelNumber});
+      text.textContent = this.t("level_reached_text");
+      let statsHtml = "";
+      statsHtml += this.formatTemplate("level_stats_points", {points: this.xp}) + "<br/>";
+      statsHtml += this.formatTemplate("level_stats_carry", {value: this.formatNumber(maxNumber)});
+      stats.innerHTML = statsHtml;
+
+      let seconds = 3;
+      countdown.textContent = this.formatTemplate("level_countdown", {level: nextLevelNumber, seconds});
+      overlay.classList.remove("hidden");
+
+      const timer = setInterval(()=>{
+        seconds--;
+        if (seconds <= 0) {
+          clearInterval(timer);
+          overlay.classList.add("hidden");
+          this.completeLevelTransition();
+        } else {
+          countdown.textContent = this.formatTemplate("level_countdown", {level: nextLevelNumber, seconds});
+        }
+      },1000);
+    }
+
+    completeLevelTransition() {
+      if (!this.pendingTransition || !this.pendingTransition.active) return;
+      const nextLevelIndex = this.pendingTransition.nextLevel;
+      const carry = this.pendingTransition.carryNumber ?? null;
+      this.pendingTransition = null;
+
+      if (nextLevelIndex >= this.levels.length) {
+        this.generateNextLevel();
+      }
+
+      this.currentLevel = nextLevelIndex;
+      this.carryNumberPending = carry;
+      this.initGame(this.currentLevel);
+      this.saveGameState();
+      this.showRandomMessage();
+    }
+
+    showVictory() { document.getElementById("victoryOverlay").classList.remove("hidden"); }
+    hideVictory() { document.getElementById("victoryOverlay").classList.add("hidden"); }
+
+    showRandomMessage() {
+      const keys = RANDOM_MESSAGES_KEYS;
+      const key = keys[Math.floor(Math.random()*keys.length)];
+      this.showMessage(this.t(key));
+    }
+
+    showMessage(text) {
+      const container = document.querySelector("#gameScreen .grid-container");
+      if (!container) return;
+
+      const old = container.querySelector(".love-bubble");
+      if (old) old.remove();
+
+      const bubble = document.createElement("div");
+      bubble.className = "love-bubble";
+      const left = 15 + Math.random()*70;
+      const top  = 25 + Math.random()*50;
+      bubble.style.left = left + "%";
+      bubble.style.top  = top + "%";
+      bubble.textContent = text;
+      container.appendChild(bubble);
+      setTimeout(()=>bubble.remove(), 2600);
+    }
+
+    updatePreviewBubble(sum, e) {
+      const bubble = document.getElementById("previewBubble");
+      if (!bubble) return;
+
+      bubble.textContent = this.formatNumber(sum);
+
+      if (this.chainNumbers.length >= 2 && this.isPowerOfTwo(sum) && sum > 0) {
+        bubble.classList.remove("normal");
+        bubble.classList.add("power2");
+      } else {
+        bubble.classList.remove("power2");
+        bubble.classList.add("normal");
+      }
+
+      if (e && e.clientX != null) {
+        const containerRect = document.querySelector(".grid-container").getBoundingClientRect();
+        const gridRect = document.getElementById("grid").getBoundingClientRect();
+        const x = e.clientX - containerRect.left;
+        const y = e.clientY - containerRect.top;
+        const cellH = gridRect.height / this.GRID_H;
+
+        bubble.style.left = x + "px";
+        bubble.style.top  = (y - cellH) + "px";
+      }
+
+      bubble.style.opacity = sum > 0 ? "1" : "0";
+    }
+
+    hidePreviewBubble() {
+      const bubble = document.getElementById("previewBubble");
+      if (!bubble) return;
+      bubble.style.opacity = "0";
+    }
+
+    formatNumber(num) {
+      if (num >= 1_000_000) return (num/1_000_000).toFixed(1).replace(".0","")+"M";
+      if (num >= 10_000)    return (num/1_000).toFixed(0)+"K";
+      if (num >= 1_000)     return (num/1_000).toFixed(1).replace(".0","")+"K";
+      return num;
+    }
+
+    saveGameState() {
+      try {
+        const gridNumbers = [];
+        for (let x=0;x<this.GRID_W;x++) {
+          gridNumbers[x] = [];
+          for (let y=0;y<this.GRID_H;y++) {
+            gridNumbers[x][y] = this.grid[x][y].number;
+          }
+        }
+        const state = {
+          version: 5,
+          currentLevel: this.currentLevel,
+          xp: this.xp,
+          grid: gridNumbers,
+          bonusInventory: this.bonusInventory,
+          animationEnabled: this.animationEnabled,
+          lang: this.lang,
+          soundEnabled: this.soundEnabled,
+          pendingTransition: this.pendingTransition,
+          diceRollsToday: this.diceRollsToday,
+          lastDiceReset: this.lastDiceReset
+        };
+        localStorage.setItem("lostNumberSave", JSON.stringify(state));
+        this.hasSave = true;
+
+        const continueBtn = document.getElementById("continueBtn");
+        if (continueBtn) { continueBtn.disabled = false; continueBtn.style.opacity = "1"; }
+      } catch (e) { console.error("Save error:", e); }
+    }
+  }
+
+  // Загружаем сохраненную тему ДО создания игры
+  document.addEventListener("DOMContentLoaded", () => {
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") {
+      document.body.classList.add("dark-theme");
+    }
+    
+    // Загрузка сплэш-экрана
+    if (sessionStorage.getItem("splashShown")) {
+      document.body.classList.add("loaded");
+    } else {
+      sessionStorage.setItem("splashShown", "1");
+      window.addEventListener("load", () => {
+        setTimeout(() => {
+          document.body.classList.add("loaded");
+        }, 1500);
+      });
+    }
+    
+    // Создаем игру
+    new LostNumberGame();
+  });
+</script>
+</body>
+</html>
