@@ -430,6 +430,11 @@
       .menu-buttons { max-width:250px; }
       .dice-choice { min-width:120px; }
     }
+
+    #previewBubble {
+      position: absolute;
+      transform: translate(-50%, 0);
+    }
   </style>
 </head>
 
@@ -1538,6 +1543,14 @@
         const anchor = this.selected[this.selected.length-1];
         const removedCells = this.selected.slice(0,-1);
 
+        if (!isPowerOfTwo(sum)) {
+          this.showMessage(this.t("chain_invalid"));
+          this.selected = [];
+          this.chainNumbers = [];
+          this.render();
+          return;
+        }
+
         if (!this.isValidResultNumber(sum, level)) {
           this.showMessage(this.t("chain_invalid"));
           this.selected = [];
@@ -2049,12 +2062,21 @@
         if (!bubble) return;
         bubble.textContent = this.formatNumber(sum);
 
-        if (e && e.clientX != null) {
-          const containerRect = document.querySelector(".grid-container").getBoundingClientRect();
-          const gridRect = document.getElementById("grid").getBoundingClientRect();
-          const x = e.clientX - containerRect.left;
-          const y = e.clientY - containerRect.top;
-          const cellH = gridRect.height / this.GRID_H;
+        if (isPowerOfTwo(sum)) {
+          bubble.classList.add("valid-sum");
+        } else {
+          bubble.classList.remove("valid-sum");
+        }
+
+        const grid = document.getElementById("grid");
+        const gridRect = grid.getBoundingClientRect();
+        const cellH = gridRect.height / this.GRID_H;
+
+        if (this.selected.length > 0) {
+          const anchor = this.selected[this.selected.length - 1];
+
+          const x = gridRect.left + (anchor.x + 0.5) * (gridRect.width / this.GRID_W);
+          const y = gridRect.top + anchor.y * cellH;
 
           bubble.style.left = x + "px";
           bubble.style.top  = (y - cellH) + "px";
