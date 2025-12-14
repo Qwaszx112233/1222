@@ -1433,6 +1433,9 @@
         this.selected = [posCell];
         this.chainNumbers = [this.grid[posCell.x][posCell.y].number];
         this.updatePreviewBubble(this.getCurrentChainSum(), e);
+        Chain.numbers = [...this.chainNumbers];
+        updateChainSum();
+        this.updatePreviewBubble(Chain.sum, e);
         this.render();
       }
 
@@ -1451,7 +1454,9 @@
           const prev = this.selected[len-2];
           if (prev.x === posCell.x && prev.y === posCell.y) {
             this.selected.pop(); this.chainNumbers.pop();
-            this.updatePreviewBubble(this.getCurrentChainSum(), e);
+            Chain.numbers = [...this.chainNumbers];
+            updateChainSum();
+            this.updatePreviewBubble(Chain.sum, e);
             this.render();
             return;
           }
@@ -1468,7 +1473,10 @@
         if (newNum === prevNum || newNum === prevNum*2) {
           this.selected.push(posCell);
           this.chainNumbers.push(newNum);
+          Chain.numbers = [...this.chainNumbers];
+          updateChainSum();
           this.updatePreviewBubble(this.getCurrentChainSum(), e);
+          this.updatePreviewBubble(Chain.sum, e);
           this.render();
         }
       }
@@ -1526,7 +1534,7 @@
 
       mergeChain() {
         const level = this.levels[this.currentLevel];
-        const sum = this.getCurrentChainSum();
+        const sum = Chain.sum;
         const anchor = this.selected[this.selected.length-1];
         const removedCells = this.selected.slice(0,-1);
 
