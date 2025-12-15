@@ -1560,13 +1560,23 @@
         const newNum = this.grid[posCell.x][posCell.y].number;
         const prevNum = this.chainNumbers[this.chainNumbers.length-1];
 
-        if (newNum === prevNum || newNum === prevNum*2) {
+        const canMove =
+          newNum === L ||
+          newNum === L * 2 ||
+          (
+            newNum === S &&
+            S >= L &&
+            isPowerOfTwo(S)
+          );
+
+        if (canMove) {
           this.selected.push(posCell);
           this.chainNumbers.push(newNum);
+
           Chain.numbers = [...this.chainNumbers];
           updateChainSum();
-          this.updatePreviewBubble(this.getCurrentChainSum(), e);
-          this.updatePreviewBubble(Chain.sum, e);
+
+          this.updatePreviewBubble(Chain.sum);
           this.render();
         }
       }
