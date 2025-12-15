@@ -1472,10 +1472,10 @@
         this.isDragging = true;
         this.selected = [posCell];
         this.chainNumbers = [this.grid[posCell.x][posCell.y].number];
-        this.updatePreviewBubble(this.getCurrentChainSum(), e);
+        this.updatePreviewBubble(this.getCurrentChainSum(),);
         Chain.numbers = [...this.chainNumbers];
         updateChainSum();
-        this.updatePreviewBubble(Chain.sum, e);
+        this.updatePreviewBubble(Chain.sum,);
         this.render();
       }
 
@@ -1540,7 +1540,8 @@
       }
 
       getCurrentChainSum() {
-        return this.chainNumbers.reduce((s,v)=>s+v,0);
+        if (this.chainNumbers.length <= 1) return 0;
+        return this.chainNumbers.slice(1).reduce((s,v)=>s+v,0);
       }
 
       isPowerOfTwo(num) {
@@ -2085,44 +2086,57 @@
         bubble.className = "love-bubble";
         const left = 15 + Math.random()*70;
         const top  = 25 + Math.random()*50;
-        bubble.style.left = left + "%";
-        bubble.style.top  = top + "%";
-        bubble.textContent = text;
-        container.appendChild(bubble);
-        setTimeout(()=>bubble.remove(), 2600);
+        bubble.style.left = x + "px";
+        bubble.style.top  = y + "px";
+        bubble.textContent = this.formatNumber(sum);
+        bubble.style.opacity = "1";
+        bubble.style.opacity = "0";
       }
 
-      updatePreviewBubble(sum, e) {
+      updatePreviewBubble(sum) {
         const bubble = document.getElementById("previewBubble");
         if (!bubble) return;
         bubble.textContent = this.formatNumber(sum);
 
-        if (isPowerOfTwo(sum)) {
+        if (sum > 0 && this.isPowerOfTwo(sum)) {
           bubble.classList.add("valid-sum");
         } else {
           bubble.classList.remove("valid-sum");
         }
 
-        const grid = document.getElementById("grid");
-        const gridRect = grid.getBoundingClientRect();
-        const cellH = gridRect.height / this.GRID_H;
+        // если нет выбранных клеток – прячем
+        if (!this.selected || this.selected.length === 0) {
+          bubble.style.opacity = "0";
+          return;
+        }
 
-        if (this.selected.length > 0) {
+          const container = document.querySelector("#gameScreen .grid-container");
+          const grid = document.getElementById("grid");
+        if (!container || !grid) return;
+
+          const containerRect = container.getBoundingClientRect();
+          const gridRect = grid.getBoundingClientRect();
+
+          const cellW = gridRect.width / this.GRID_W;
+          const cellH = gridRect.height / this.GRID_H;
+
           const anchor = this.selected[this.selected.length - 1];
 
-          const x = gridRect.left + (anchor.x + 0.5) * (gridRect.width / this.GRID_W);
-          const y = gridRect.top + anchor.y * cellH;
+          // центр клетки в координатах container
+          const x = (gridRect.left - containerRect.left) + (anchor.x + 0.5) * cellW;
+          // верх клетки в координатах container
+          const yTop = (gridRect.top - containerRect.top) + anchor.y * cellH;
 
           bubble.style.left = x + "px";
-          bubble.style.top  = (y - cellH) + "px";
-        }
-        bubble.style.opacity = sum>0 ? "1" : "0";
+          bubble.style.top  = (yTop - cellH) + "px";
+          bubble.style.opacity = sum > 0 ? "1" : "0";
       }
 
       hidePreviewBubble() {
         const bubble = document.getElementById("previewBubble");
         if (!bubble) return;
         bubble.style.opacity = "0";
+        bubble.classList.remove("valid-sum");
       }
 
       formatNumber(num) {
