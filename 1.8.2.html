@@ -219,6 +219,7 @@
       opacity:0.22;
       transition:width 0.35s.ease;
     }
+
     .xp-text {
       position:relative;
       z-index:1;
@@ -1106,9 +1107,9 @@
           target *= 2;
           if (i%3===2 && baseNumbers.length<7) {
             baseNumbers.push(baseNumbers[baseNumbers.length-1]*2);
+            return levels;
           }
         }
-        return levels;
       }
 
       generateNewNumbers(target) {
@@ -1533,43 +1534,79 @@
         if (!this.isDragging || this.activeBonus) return;
         e.preventDefault();
 
-        const posCell = this.getCellFromPoint(e.clientX,e.clientY);
-        this.updatePreviewBubble(this.getCurrentChainSum(), e);
-
+        const posCell = this.getCellFromPoint(e.clientX, e.clientY);
         if (!posCell) return;
+
+        this.updatePreviewBubble(this.getCurrentChainSum());
+
         const len = this.selected.length;
         if (len === 0) return;
 
+        // откат назад по цепочке
         if (len >= 2) {
-          const prev = this.selected[len-2];
+          const prev = this.selected[len - 2];
           if (prev.x === posCell.x && prev.y === posCell.y) {
-            this.selected.pop(); this.chainNumbers.pop();
+            this.selected.pop();
+            this.chainNumbers.pop();
             Chain.numbers = [...this.chainNumbers];
             updateChainSum();
-            this.updatePreviewBubble(Chain.sum,);
+            this.updatePreviewBubble(Chain.sum);
             this.render();
             return;
           }
         }
 
-        if (this.selected.some(s=>s.x===posCell.x && s.y===posCell.y)) return;
+        // уже выбрана
+        if (this.selected.some(s => s.x === posCell.x && s.y === posCell.y)) return;
 
-        const last = this.selected[len-1];
-        if (!this.isAdjacent(last,posCell)) return;
+        // не сосед
+        const last = this.selected[len - 1];
+        if (!this.isAdjacent(last, posCell)) return;
 
+        // --- АКСИОМНАЯ ЛОГИКА ---
         const newNum = this.grid[posCell.x][posCell.y].number;
-        const prevNum = this.chainNumbers[this.chainNumbers.length-1];
+        const L = this.chainNumbers[this.chainNumbers.length - 1];
+
+        // предполагаемая сумма, ЕСЛИ добавим newNum
+        const nextSum = Chain.sum + newNum;
 
         const canMove =
           newNum === L ||
           newNum === L * 2 ||
           (
-            newNum === S &&
-            S >= L &&
-            isPowerOfTwo(S)
+            newNum === nextSum &&
+            nextSum >= L &&
+            this.isPowerOfTwo(nextSum)
           );
 
-        if (canMove) {
+        if (!canMove) return;
+
+        // добавляем
+        this.selected.push(posCell);
+        this.chainNumbers.push(newNum);
+
+        Chain.numbers = [...this.chainNumbers];
+        updateChainSum();
+
+        this.updatePreviewBubble(Chain.sum);
+        this.render();
+      }
+
+        const newNum = this.grid[posCell.x][posCell.y].number;
+        const L = this.chainNumbers[this.chainNumbers.length - 1];
+        const S = Chain.sum;
+
+        const canMove =
+        newNum === L ||
+        newNum === L * 2 ||
+        (
+         newNum === S &&
+        S >= L &&
+        isPowerOfTwo(S)
+        );
+
+        if (!canMove) return;
+
           this.selected.push(posCell);
           this.chainNumbers.push(newNum);
 
@@ -1578,8 +1615,8 @@
 
           this.updatePreviewBubble(Chain.sum);
           this.render();
+          }
         }
-      }
 
       handlePointerUp() {
         if (!this.isDragging) return;
@@ -1592,7 +1629,7 @@
           this.selected = [];
           this.chainNumbers = [];
           this.render();
-        }
+          }
       }
 
       isAdjacent(a,b) {
