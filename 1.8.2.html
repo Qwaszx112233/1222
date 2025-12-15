@@ -634,20 +634,22 @@
     AXIOMA — АКСИОГРАФИЯ ИГРЫ
     ══════════════════════════════════════════════
 
-    Этот блок — канон игры.
-    Он описывает ЗАКОНЫ МИРА, а не реализацию.
+    • Этот блок — канон игры.
 
-    Любая логика игры:
-    — обязана соответствовать этим аксиомам
-    — не может их обходить
-    — при конфликте код меняется, аксиомы — нет
+    • Он описывает ЗАКОНЫ МИРА, а не реализацию.
+
+    • Любая логика игры:
+      — обязана соответствовать этим аксиомам
+      — не может их обходить
+      — при конфликте код меняется, аксиомы — нет
 
     ──────────────────────────────────────────────
     1. ЧИСЛОВАЯ ПРИРОДА МИРА
     ──────────────────────────────────────────────
+
     • Все числа, существующие в игре, являются
-    строго степенями двойки:
-    2, 4, 8, 16, 32, 64, 128, …
+      строго степенями двойки:
+        2, 4, 8, 16, 32, 64, 128, …
 
     • Других чисел в мире игры не существует.
       Их нельзя создать, получить или показать.
@@ -660,36 +662,84 @@
 
     • Цепочка — это упорядоченная история ходов.
 
+    • Первое число цепочки является ЯКОРЕМ:
+      — оно всегда участвует в сумме
+      — но не может само по себе завершить цепочку
+
     • Каждое новое число проверяется
       относительно предыдущего и всей цепочки.
 
     ──────────────────────────────────────────────
     3. ДОПУСТИМЫЙ ХОД
     ──────────────────────────────────────────────
-    Следующее число в цепочке может быть:
-    1) равно предыдущему числу
-    2) в два раза больше предыдущего числа
-    3) равно сумме всей цепочки,
-      если сумма — степень двойки
-      и не меньше последнего числа цепочки
+
+    • Следующее число в цепочке может быть:
+        1) равно предыдущему числу
+        2) в два раза больше предыдущего числа
+        3) равно сумме всей цепочки,
+           ЕСЛИ выполняются условия:
+            • сумма является степенью двойки
+            • сумма не меньше последнего числа цепочки
+
+    • Если условия не выполнены — ход невозможен.
 
     ──────────────────────────────────────────────
     4. СУММА ЦЕПОЧКИ
     ──────────────────────────────────────────────
+
     • Сумма цепочки существует всегда.
+
     • Когда сумма — степень двойки,
-     она становится допустимым числом хода.
+      она становится допустимым числом хода.
+
+    • Сумма считается как сумма ВСЕХ чисел цепочки,
+      включая первое число.
+
+    • Сумма сама по себе не завершает цепочку.
 
     ──────────────────────────────────────────────
     5. ОТКАТ
     ──────────────────────────────────────────────
+
     • Откат возможен только назад по цепочке.
+
     • История не переписывается.
 
     ──────────────────────────────────────────────
     6. НЕИЗМЕННОСТЬ
     ──────────────────────────────────────────────
-    Аксиомы не меняются. Меняется код.
+
+    • Аксиомы не меняются. Меняется код.
+
+    • Аксиомы не балансируются.
+
+    • Аксиомы не упрощаются.
+
+    • Аксиомы не нарушаются временно.
+
+    ──────────────────────────────────────────────
+    7. ЗАВЕРШЕНИЕ ЦЕПОЧКИ
+    ──────────────────────────────────────────────
+
+    • Цепочка может быть ЗАВЕРШЕНА
+      ТОЛЬКО если выполняются одновременно:
+      1) сумма цепочки является степенью двойки
+      2) сумма цепочки СТРОГО больше
+        первого числа цепочки
+
+    • Первый блок НИКОГДА не может
+      завершить цепочку сам по себе,
+      независимо от своего значения.
+
+    ──────────────────────────────────────────────
+    8. СБРОС ЦЕПОЧКИ
+    ──────────────────────────────────────────────
+
+    • Если игрок завершает жест (отпускает цепочку),
+      но цепочка не удовлетворяет условиям завершения,
+      цепочка ПОЛНОСТЬЮ СБРАСЫВАЕТСЯ.
+
+    • Незавершённая цепочка не даёт результата.
 
     ══════════════════════════════════════════════
     КОНЕЦ AXIOMA
@@ -1496,7 +1546,7 @@
             this.selected.pop(); this.chainNumbers.pop();
             Chain.numbers = [...this.chainNumbers];
             updateChainSum();
-            this.updatePreviewBubble(Chain.sum, e);
+            this.updatePreviewBubble(Chain.sum,);
             this.render();
             return;
           }
@@ -1540,8 +1590,7 @@
       }
 
       getCurrentChainSum() {
-        if (this.chainNumbers.length <= 1) return 0;
-        return this.chainNumbers.slice(1).reduce((s,v)=>s+v,0);
+        return this.chainNumbers.reduce((s, v) => s + v, 0);
       }
 
       isPowerOfTwo(num) {
@@ -2096,40 +2145,58 @@
       updatePreviewBubble(sum) {
         const bubble = document.getElementById("previewBubble");
         if (!bubble) return;
+
         bubble.textContent = this.formatNumber(sum);
 
-        if (sum > 0 && this.isPowerOfTwo(sum)) {
+        // если нет выбранных клеток — прячем сразу
+        if (!this.selected || this.selected.length === 0) {
+          bubble.style.opacity = "0";
+          bubble.classList.remove("valid-sum");
+          return;
+        }
+
+        const first = this.chainNumbers[0];
+
+        // AXIOMA:
+        // сумма — степень двойки
+        // сумма строго больше первого числа
+        // цепочка минимум из 2 элементов
+        if (
+          this.chainNumbers.length >= 2 &&
+          this.isPowerOfTwo(sum) &&
+          sum > first
+        ) {
           bubble.classList.add("valid-sum");
         } else {
           bubble.classList.remove("valid-sum");
         }
 
-        // если нет выбранных клеток – прячем
-        if (!this.selected || this.selected.length === 0) {
-          bubble.style.opacity = "0";
-          return;
-        }
-
-          const container = document.querySelector("#gameScreen .grid-container");
-          const grid = document.getElementById("grid");
+        const container = document.querySelector("#gameScreen .grid-container");
+        const grid = document.getElementById("grid");
         if (!container || !grid) return;
 
-          const containerRect = container.getBoundingClientRect();
-          const gridRect = grid.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const gridRect = grid.getBoundingClientRect();
 
-          const cellW = gridRect.width / this.GRID_W;
-          const cellH = gridRect.height / this.GRID_H;
+        const cellW = gridRect.width / this.GRID_W;
+        const cellH = gridRect.height / this.GRID_H;
 
-          const anchor = this.selected[this.selected.length - 1];
+        const anchor = this.selected[this.selected.length - 1];
 
-          // центр клетки в координатах container
-          const x = (gridRect.left - containerRect.left) + (anchor.x + 0.5) * cellW;
-          // верх клетки в координатах container
-          const yTop = (gridRect.top - containerRect.top) + anchor.y * cellH;
+        // центр клетки
+        const x =
+          (gridRect.left - containerRect.left) +
+          (anchor.x + 0.5) * cellW;
 
-          bubble.style.left = x + "px";
-          bubble.style.top  = (yTop - cellH) + "px";
-          bubble.style.opacity = sum > 0 ? "1" : "0";
+        // над клеткой
+        const y =
+          (gridRect.top - containerRect.top) +
+          anchor.y * cellH -
+          cellH;
+
+        bubble.style.left = x + "px";
+        bubble.style.top = y + "px";
+        bubble.style.opacity = "1";
       }
 
       hidePreviewBubble() {
